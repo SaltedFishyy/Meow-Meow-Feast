@@ -42,6 +42,7 @@ Claude 只在两种情况下直接改代码：修改量极小（例如一处拼�
 - [ ] `git diff` 只改了任务范围内的文件；没有动 `ProjectSettings/`、`Packages/`，除非任务要求
 - [ ] 满足任务说明里的每一条验收标准
 - [ ] **能编译**：Unity 控制台 / `Editor.log`（`%LOCALAPPDATA%\Unity\Editor\Editor.log`）里没有 `error CS`；可用 unity-cli 技能驱动正在运行的编辑器检查
+- [ ] 生成的场景 / 预制体里，**序列化引用不是空的**（用 script eval 读出每个 `[SerializeField]` 引用检查；也可以 grep 场景文件里的 `{fileID: 0}`）。然后进 Play 一次，看 Console 有没有报错（`unity command --port <端口> console get`）
 - [ ] 每个新的 `.cs` 都有对应的 `.meta`（或确认 Unity 会生成）；没有手写乱造的 GUID 引用
 - [ ] 符合 `AGENTS.md` 的规范：命名、命名空间、目录、无魔法数字（数值放 ScriptableObject 或序列化字段）
 - [ ] 没有明显的性能问题（`Update` 里 `Find`/`GetComponent`/分配大量垃圾）

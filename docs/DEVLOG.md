@@ -16,7 +16,7 @@
 
 **审查 / 实测**：编译 0 错误 0 警告；场景里 55 个引用都不为空，`_player` 已从场景移除。Play 时车内镜头尺寸 5，走出下门后变成 7，停在 y = -12.59（和 T003 一样）。Console 没有报错。
 
-**还没删的**：`Assets/Welcome`、`Assets/Scenes/SampleScene` 是模板自带的资源，等用户同意再删。
+**模板资源**（用户同意后由 Claude 删除）：删掉 `Assets/Welcome/`（模板欢迎页及其脚本、asmdef）和 `Assets/Scenes/SampleScene.unity`，用 Unity 的 `AssetDatabase.DeleteAsset` 删除，`.meta` 一起删掉了。Build Settings 里原来只有 SampleScene，这条也删了，所以**现在 Build Settings 是空的**；以后要出包时再把 `Prototype.unity` 加进去。删除后编译 0 错误 0 警告。
 
 ---
 

@@ -10,6 +10,7 @@ namespace MMF.Truck
         [SerializeField, Min(0.01f)] private float _wallThickness = 0.5f;
         [SerializeField] private Transform _floor = null;
         [SerializeField] private Transform[] _walls = new Transform[6];
+        [SerializeField] private Transform[] _doorBlockers = new Transform[2];
         /// <summary>Tests the position against the wall inner faces.</summary>
         public bool Contains(Vector2 position)
         {
@@ -59,6 +60,9 @@ namespace MMF.Truck
             SetPart(_walls[3], new Vector2(x, y), new Vector2(width, _wallThickness));
             SetPart(_walls[4], new Vector2(-x, -y), new Vector2(width, _wallThickness));
             SetPart(_walls[5], new Vector2(x, -y), new Vector2(width, _wallThickness));
+            for (int i = 0; i < _doorBlockers.Length; i++)
+                if (_doorBlockers[i] != null)
+                    SetPart(_doorBlockers[i], new Vector2(0f, i == 0 ? y : -y), new Vector2(_doorWidth, _wallThickness));
         }
         private static void SetPart(Transform part, Vector2 position, Vector2 size)
         {

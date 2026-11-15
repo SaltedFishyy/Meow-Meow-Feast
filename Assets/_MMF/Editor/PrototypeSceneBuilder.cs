@@ -1,5 +1,6 @@
 using System.IO;
 using MMF.Core;
+using MMF.Combat;
 using MMF.Cooking;
 using MMF.Player;
 using MMF.Data;
@@ -89,6 +90,7 @@ namespace MMF.Editor
 
             PlayerBackpack backpack = CreatePlayer(sprite, controls);
             TruckArea truck = CreateTruck(sprite);
+            CreateMonsters(sprite, truck, backpack);
             FollowCamera follow = camera.gameObject.AddComponent<FollowCamera>();
             SetReference(follow, "_target", backpack.transform);
             SetReference(follow, "_map", arena);
@@ -129,6 +131,67 @@ namespace MMF.Editor
             truck.RefreshLayout();
             return truck;
         }
+        private static void CreateMonsters(Sprite sprite, TruckArea truck, PlayerBackpack player)
+        {
+            EnsureFolder(Root + "/Data/Monsters");
+            string path = Root + "/Data/Monsters/CursedDumpling.asset";
+            MonsterDefinition definition = AssetDatabase.LoadAssetAtPath<MonsterDefinition>(path);
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+                AssetDatabase.CreateAsset(definition, path);
+            }
+            MonsterSpawner spawner = new GameObject("Monster Spawner").AddComponent<MonsterSpawner>();
+            SetReference(spawner, "_definition", definition);
+            SerializedObject truckData = new SerializedObject(truck);
+            SerializedProperty doors = truckData.FindProperty("_doorBlockers");
+            doors.arraySize = 2;
+            SerializedObject spawnData = new SerializedObject(spawner);
+            SerializedProperty blockers = spawnData.FindProperty("_doorBlockers");
+            blockers.arraySize = 2;
+            for (int i = 0; i < 2; i++)
+            {
+                BoxCollider2D door = CreateWall("Monster Door Blocker " + i, truck.transform);
+                doors.GetArrayElementAtIndex(i).objectReferenceValue = door.transform;
+                blockers.GetArrayElementAtIndex(i).objectReferenceValue = door;
+            }
+            truckData.ApplyModifiedPropertiesWithoutUndo();
+            truck.RefreshLayout();
+            Collider2D[] playerColliders = player.GetComponentsInChildren<Collider2D>();
+            SerializedProperty players = spawnData.FindProperty("_playerColliders");
+            players.arraySize = playerColliders.Length;
+            for (int i = 0; i < playerColliders.Length; i++)
+                players.GetArrayElementAtIndex(i).objectReferenceValue = playerColliders[i];
+            Vector2[] positions = { new Vector2(0f, 10f), new Vector2(-12f, 5f),
+                new Vector2(13f, 2f), new Vector2(-8f, -9f), new Vector2(4f, -10f) };
+            SerializedProperty points = spawnData.FindProperty("_spawnPoints");
+            SerializedProperty monsters = spawnData.FindProperty("_monsters");
+            points.arraySize = monsters.arraySize = positions.Length;
+            for (int i = 0; i < positions.Length; i++)
+            {
+                Transform point = new GameObject("Monster Spawn " + i).transform;
+                point.SetParent(spawner.transform, false);
+                point.position = truck.transform.position + (Vector3)positions[i];
+                SpriteRenderer visual = CreateSprite("Cursed Dumpling " + i, sprite, definition.Color, 2);
+                visual.transform.position = point.position;
+                visual.transform.localScale = Vector3.one * definition.Size;
+                Rigidbody2D body = visual.gameObject.AddComponent<Rigidbody2D>();
+                body.bodyType = RigidbodyType2D.Kinematic;
+                body.useFullKinematicContacts = true;
+                body.constraints = RigidbodyConstraints2D.FreezeRotation;
+                body.interpolation = RigidbodyInterpolation2D.Interpolate;
+                body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                visual.gameObject.AddComponent<BoxCollider2D>();
+                Monster monster = visual.gameObject.AddComponent<Monster>();
+                SetReference(monster, "_definition", definition);
+                SetReference(monster, "_target", truck.transform);
+                points.GetArrayElementAtIndex(i).objectReferenceValue = point;
+                monsters.GetArrayElementAtIndex(i).objectReferenceValue = monster;
+            }
+            spawnData.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+        }
+
         private static Camera CreateCamera()
         {
             GameObject cameraObject = new GameObject("Main Camera");

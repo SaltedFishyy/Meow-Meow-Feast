@@ -15,3 +15,4 @@ MonoBehaviour:
   _id: Mushroom
   _displayName: "\u8611\u83C7"
   _color: {r: 0.85, g: 0.75, b: 0.55, a: 1}
+  _fryingResult: {fileID: 11400000, guid: ca4d4f4916942794ab206d258846d4b6, type: 2}

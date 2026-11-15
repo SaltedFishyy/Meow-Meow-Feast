@@ -12,7 +12,23 @@ namespace MMF.Player
         [SerializeField, Min(0f)] private float _decelerationTime = 0.1f;
 
         private Rigidbody2D _body;
+        private Rigidbody2D Body
+        {
+            get
+            {
+                if (_body == null) _body = GetComponent<Rigidbody2D>();
+                return _body;
+            }
+        }
         private Vector2 _moveDirection;
+        private bool _blocked;
+        public Vector2 LastMoveDirection { get; private set; } = Vector2.down;
+        /// <summary>Immediately stops the body while cooking owns input.</summary>
+        public void SetBlocked(bool blocked)
+        {
+            _blocked = blocked;
+            if (blocked) Body.linearVelocity = Vector2.zero;
+        }
 
         private void Awake()
         {
@@ -25,10 +41,15 @@ namespace MMF.Player
         public void SetMoveDirection(Vector2 direction)
         {
             _moveDirection = Vector2.ClampMagnitude(direction, 1f);
+            if (_blocked) return;
+            if (direction.sqrMagnitude > 0f)
+                LastMoveDirection = Mathf.Abs(direction.x) > Mathf.Abs(direction.y)
+                    ? new Vector2(Mathf.Sign(direction.x), 0f) : new Vector2(0f, Mathf.Sign(direction.y));
         }
 
         private void FixedUpdate()
         {
+            if (_blocked) { _body.linearVelocity = Vector2.zero; return; }
             Vector2 targetVelocity = _moveDirection * _maxSpeed;
             float duration = _moveDirection.sqrMagnitude > 0f
                 ? _accelerationTime : _decelerationTime;
@@ -41,7 +62,7 @@ namespace MMF.Player
         private void OnDisable()
         {
             _moveDirection = Vector2.zero;
-            _body.linearVelocity = Vector2.zero;
+            Body.linearVelocity = Vector2.zero;
         }
     }
 }

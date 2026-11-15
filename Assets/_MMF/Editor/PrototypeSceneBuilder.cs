@@ -1,5 +1,6 @@
 using System.IO;
 using MMF.Core;
+using MMF.Cooking;
 using MMF.Player;
 using MMF.Data;
 using MMF.UI;
@@ -48,7 +49,7 @@ namespace MMF.Editor
                 Debug.LogError("Cannot build prototype: MMFControls/Gameplay/Move is missing.");
                 return;
             }
-            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop" };
+            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Interact", "Cancel", "Lift", "FryW", "FryA", "FryS", "FryD" };
             foreach (string action in requiredActions)
                 if (controls.FindAction("Gameplay/" + action) == null)
                 {
@@ -93,6 +94,7 @@ namespace MMF.Editor
             SetReference(follow, "_map", arena);
             SetReference(follow, "_truck", truck);
             RectTransform row = CreateBackpackContent(sprite, backpack);
+            CreateFrying(sprite, backpack, truck, row);
             SetReference(arena, "_follow", follow);
             SetReference(arena, "_backpackRow", row);
             Canvas.ForceUpdateCanvases();
@@ -159,6 +161,8 @@ namespace MMF.Editor
             icon.enabled = false;
             SetReference(backpack, "_itemSprite", sprite);
             SetReference(backpack, "_heldIcon", icon);
+            SetReference(backpack, "_failureSprite", LoadMark(false));
+            player.AddComponent<PlayerInteractor>();
             PlayerInputReader reader = player.AddComponent<PlayerInputReader>();
             SerializedObject readerData = new SerializedObject(reader);
             readerData.FindProperty("_controls").objectReferenceValue = controls;
@@ -233,6 +237,83 @@ namespace MMF.Editor
                 Debug.LogError("Backpack font cannot display the required Chinese characters.");
             AssetDatabase.SaveAssets();
             return row;
+        }
+
+        private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow)
+        {
+            Transform canvas = backpackRow.parent;
+            ItemDefinition meat = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/MonsterMeat.asset");
+            ItemDefinition mushroom = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/Mushroom.asset");
+            ItemDefinition friedMeat = LoadItem("FriedMonsterMeat", "煎怪肉", meat.Color * new Color(0.65f, 0.65f, 0.65f, 1f));
+            ItemDefinition friedMushroom = LoadItem("FriedMushroom", "煎蘑菇", mushroom.Color * new Color(0.65f, 0.65f, 0.65f, 1f));
+            ItemDefinition burnt = LoadItem("Burnt", "焦土", new Color(0.15f, 0.08f, 0.04f));
+            // Only set defaults on raw definitions; keep subsequent Inspector tuning.
+            if (meat.FryingResult == null) SetReference(meat, "_fryingResult", friedMeat);
+            if (mushroom.FryingResult == null) SetReference(mushroom, "_fryingResult", friedMushroom);
+            SpriteRenderer stationBody = CreateSprite("Frying Station", sprite, new Color(0.25f, 0.27f, 0.3f), 3);
+            stationBody.transform.position = (Vector3)truck.TopLeftCell(Vector2.one);
+            stationBody.gameObject.AddComponent<BoxCollider2D>().size = Vector2.one;
+            FryingStation station = stationBody.gameObject.AddComponent<FryingStation>();
+            SpriteRenderer food = CreateSprite("Pan Contents", sprite, Color.white, 4);
+            food.transform.SetParent(station.transform, false); food.transform.localScale = Vector3.one * 0.4f;
+            food.enabled = false; SetReference(station, "_food", food); SetReference(station, "_burntItem", burnt);
+
+            FryingPanel panel = canvas.gameObject.AddComponent<FryingPanel>();
+            RectTransform view = UiRect("Frying View", canvas, Vector2.zero, Vector2.zero);
+            view.anchorMin = new Vector2(2f / 3f, 0f); view.anchorMax = Vector2.one;
+            view.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 1f);
+            RectTransform panRect = UiRect("Pan", view, new Vector2(280f, 280f), Vector2.zero);
+            Image pan = panRect.gameObject.AddComponent<Image>(); pan.sprite = LoadMark(true); pan.color = new Color(0.3f, 0.32f, 0.35f);
+            Image foodImage = UiRect("Food", panRect, new Vector2(90f, 90f), Vector2.zero).gameObject.AddComponent<Image>();
+            Text letters = UiText("Letters", view, new Vector2(400f, 60f), new Vector2(0f, -190f), 34);
+            Text status = UiText("Side and Timer", view, new Vector2(400f, 120f), new Vector2(0f, 220f), 24);
+            SetReference(panel, "_backpackRow", backpackRow);
+            SetReference(panel, "_view", view); SetReference(panel, "_pan", pan);
+            SetReference(panel, "_food", foodImage); SetReference(panel, "_letters", letters);
+            SetReference(panel, "_status", status); SetReference(panel, "_panSprite", pan.sprite);
+            PlayerInteractor interactor = backpack.GetComponent<PlayerInteractor>();
+            SetReference(interactor, "_station", station); SetReference(interactor, "_panel", panel); SetReference(interactor, "_truck", truck);
+            view.gameObject.SetActive(false); AssetDatabase.SaveAssets();
+        }
+        private static RectTransform UiRect(string name, Transform parent, Vector2 size, Vector2 position)
+        {
+            RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+            rect.SetParent(parent, false); rect.sizeDelta = size; rect.anchoredPosition = position; return rect;
+        }
+        private static Text UiText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize)
+        {
+            Text text = UiRect(name, parent, size, position).gameObject.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); text.fontSize = fontSize;
+            text.alignment = TextAnchor.MiddleCenter; text.color = Color.white; text.raycastTarget = false; return text;
+        }
+        private static Sprite LoadMark(bool pan)
+        {
+            string path = Root + "/Art/Placeholder/" + (pan ? "Pan" : "Failure") + ".png";
+            if (!File.Exists(path))
+            {
+                const int size = 64;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                try
+                {
+                    var pixels = new Color32[size * size];
+                    for (int y = 0; y < size; y++)
+                    for (int x = 0; x < size; x++)
+                    {
+                        float dx = x - (size - 1) * 0.5f, dy = y - (size - 1) * 0.5f;
+                        bool visible = pan ? dx * dx + dy * dy <= 30f * 30f :
+                            (Mathf.Abs(dx - dy) <= 5f || Mathf.Abs(dx + dy) <= 5f) && Mathf.Abs(dx) < 27f && Mathf.Abs(dy) < 27f;
+                        pixels[y * size + x] = visible ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
+                    }
+                    texture.SetPixels32(pixels); texture.Apply(); File.WriteAllBytes(path, texture.EncodeToPNG());
+                }
+                finally { Object.DestroyImmediate(texture); }
+            }
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = 64; importer.mipmapEnabled = false;
+            importer.textureCompression = TextureImporterCompression.Uncompressed; importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         private static void ValidateReferences(Scene scene)

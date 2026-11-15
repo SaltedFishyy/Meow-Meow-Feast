@@ -17,6 +17,33 @@ namespace MMF.Truck
             return Mathf.Abs(local.x) < _size.x * 0.5f - _wallThickness &&
                    Mathf.Abs(local.y) < _size.y * 0.5f - _wallThickness;
         }
+        private const float PlacementTolerance = 0.0001f;
+        /// <summary>Interior rectangle bounded by the wall inner faces.</summary>
+        public Rect InteriorRect => new Rect((Vector2)transform.position - _size * 0.5f + Vector2.one * _wallThickness,
+            _size - Vector2.one * (2f * _wallThickness));
+        /// <summary>Snaps to cell centers measured from the interior lower-left corner.</summary>
+        public Vector2 SnapCell(Vector2 position, Vector2 cellSize)
+        {
+            Vector2 origin = InteriorRect.min + cellSize * 0.5f;
+            Vector2 delta = position - origin;
+            return origin + new Vector2(Mathf.Round(delta.x / cellSize.x) * cellSize.x,
+                Mathf.Round(delta.y / cellSize.y) * cellSize.y);
+        }
+        /// <summary>Checks the complete footprint, allowing contact with inner walls.</summary>
+        public bool ContainsFootprint(Vector2 center, Vector2 size)
+        {
+            Rect rect = InteriorRect;
+            Vector2 min = center - size * 0.5f, max = center + size * 0.5f;
+            return min.x >= rect.xMin - PlacementTolerance && min.y >= rect.yMin - PlacementTolerance &&
+                max.x <= rect.xMax + PlacementTolerance && max.y <= rect.yMax + PlacementTolerance;
+        }
+        /// <summary>Returns the top-left complete cell in the interior grid.</summary>
+        public Vector2 TopLeftCell(Vector2 cellSize)
+        {
+            Rect rect = InteriorRect;
+            return rect.min + new Vector2(cellSize.x * 0.5f,
+                (Mathf.Floor((rect.height + PlacementTolerance) / cellSize.y) - 0.5f) * cellSize.y);
+        }
         private void Start() { RefreshLayout(); }
         /// <summary>Applies Inspector dimensions to floor and six wall segments.</summary>
         public void RefreshLayout()

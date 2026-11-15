@@ -14,12 +14,14 @@ namespace MMF.Player
         private InputAction _moveAction;
         private PlayerMovement _movement;
         private PlayerBackpack _backpack;
+        private PlayerInteractor _interactor;
         private InputActionMap _gameplay;
 
         private void Awake()
         {
             _movement = GetComponent<PlayerMovement>();
             _backpack = GetComponent<PlayerBackpack>();
+            _interactor = GetComponent<PlayerInteractor>();
             if (_controls == null)
             {
                 Debug.LogError("PlayerInputReader requires the MMFControls input asset.", this);
@@ -34,10 +36,18 @@ namespace MMF.Player
             for (int i = 0; i < 5; i++)
             {
                 int slot = i;
-                _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => _backpack?.SelectSlot(slot);
+                _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => { if (_interactor == null || !_interactor.Cooking) _backpack?.SelectSlot(slot); };
             }
-            _gameplay.FindAction("ScrollSlot", true).performed += context => _backpack?.ScrollSlot(context.ReadValue<float>());
-            _gameplay.FindAction("Drop", true).performed += context => _backpack?.Drop();
+            _gameplay.FindAction("ScrollSlot", true).performed += context => { if (_interactor == null || !_interactor.Cooking) _backpack?.ScrollSlot(context.ReadValue<float>()); };
+            _gameplay.FindAction("Drop", true).performed += context => { if (_interactor == null || _interactor.CanDrop) _backpack?.Drop(); };
+            _gameplay.FindAction("Interact", true).performed += context => _interactor?.Interact();
+            _gameplay.FindAction("Cancel", true).performed += context => _interactor?.Cancel();
+            _gameplay.FindAction("Lift", true).performed += context => _interactor?.Lift();
+            foreach (char key in "WASD")
+            {
+                char letter = key;
+                _gameplay.FindAction("Fry" + letter, true).performed += context => _interactor?.Press(letter);
+            }
             _moveAction.performed += OnMove;
             _moveAction.canceled += OnMove;
         }

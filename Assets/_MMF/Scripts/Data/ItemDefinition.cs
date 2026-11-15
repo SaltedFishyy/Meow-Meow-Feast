@@ -8,6 +8,8 @@ namespace MMF.Data
         [SerializeField] private string _id = "";
         [SerializeField] private string _displayName = "";
         [SerializeField] private Color _color = Color.white;
+        [SerializeField] private ItemDefinition _fryingResult = null;
+        public ItemDefinition FryingResult => _fryingResult;
         public string Id => _id;
         public string DisplayName => _displayName;
         public Color Color => _color;

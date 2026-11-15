@@ -50,7 +50,9 @@ Unity YAML (`.unity`, `.prefab`, `.asset`) is fragile to hand-edit. Instead:
 
 ## Scope and safety
 
-- Do only what the task asks. If something in the task is unclear or conflicts with the GDD, make the simplest reasonable choice and list it under "Decisions" in your report — do not redesign gameplay.
+- Do only what the task asks — no extra features, no "improvements" that weren't requested, no changes to gameplay values or rules.
+- **Do not guess design.** If anything about gameplay, values, controls, UI or rules is unclear, missing, or conflicts with the GDD: do NOT pick something yourself. Stop work on that part, finish only the parts that are unambiguous, and list the open questions under "疑问" in your report. If the whole task depends on the unclear point, make no code changes and report only the questions.
+- Purely technical choices (how to structure code, which Unity API to use) are yours to make; list notable ones under "决定 / 假设".
 - Do not edit `docs/GDD.md`, `CLAUDE.md` or this file. Do not commit, push, rebase or reset — the lead handles Git.
 - Do not install packages unless the task lists them.
 
@@ -63,8 +65,10 @@ Write it in Chinese, in this shape:
 - 每条验收标准：✅/❌ + 一句说明
 ## 改动文件
 - path — 做了什么
-## 决定 / 假设
-- 任务没写清楚、你自己做的选择
+## 疑问（需要确认，没有就写"无"）
+- 不清楚的设计点：哪里不清楚、有哪几种理解；因此没做的部分
+## 决定 / 假设（仅限技术层面）
+- 你做的技术选择
 ## 用户需要在 Unity 里做的事
 - 例如：运行菜单 MMF/Build Prototype Scene，然后按 Play
 ## 已知问题 / 未完成

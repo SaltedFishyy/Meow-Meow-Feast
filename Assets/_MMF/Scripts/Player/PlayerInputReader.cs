@@ -16,9 +16,6 @@ namespace MMF.Player
         private PlayerBackpack _backpack;
         private InputActionMap _gameplay;
 
-        /// <summary>The current local movement direction, limited to unit length.</summary>
-        public Vector2 MoveInput { get; private set; }
-
         private void Awake()
         {
             _movement = GetComponent<PlayerMovement>();
@@ -52,14 +49,14 @@ namespace MMF.Player
 
         private void OnMove(InputAction.CallbackContext context)
         {
-            MoveInput = Vector2.ClampMagnitude(context.ReadValue<Vector2>(), 1f);
-            _movement.SetMoveDirection(MoveInput);
+            _movement.SetMoveDirection(context.canceled
+                ? Vector2.zero
+                : Vector2.ClampMagnitude(context.ReadValue<Vector2>(), 1f));
         }
 
         private void OnDisable()
         {
             _gameplay?.Disable();
-            MoveInput = Vector2.zero;
             _movement.SetMoveDirection(Vector2.zero);
         }
 

@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-11-15 · T003 清理补丁 · 删掉用不到的代码
+
+**起因**：用户新定规则"用不到的代码要删掉"（已写进 `CLAUDE.md` 审查清单和 `AGENTS.md`）。
+
+**做了什么**（Codex 编写，Claude 审查通过）
+- `TruckArea`：删掉没人订阅的 `OccupancyChanged` 事件、没人读的 `IsPlayerInside`，以及只为它们服务的 `LateUpdate` 和 `_player` 引用。镜头本来就直接调用 `Contains()`。
+- `PlayerInputReader`：删掉没人读的 `MoveInput` 属性。
+- `PrototypeSceneBuilder`：不再给餐车设置 `_player`；重新生成了场景。
+- Codex 检查了其他代码和空文件夹，没发现别的可删项。
+
+**审查 / 实测**：编译 0 错误 0 警告；场景里 55 个引用都不为空，`_player` 已从场景移除。Play 时车内镜头尺寸 5，走出下门后变成 7，停在 y = -12.59（和 T003 一样）。Console 没有报错。
+
+**还没删的**：`Assets/Welcome`、`Assets/Scenes/SampleScene` 是模板自带的资源，等用户同意再删。
+
+---
+
 ## 2026-11-15 · T003 · 大地图 + 镜头跟随 + 占位餐车 + 进出餐车拉近拉远
 
 **做了什么**（Codex 编写，Claude 审查通过，一次过）

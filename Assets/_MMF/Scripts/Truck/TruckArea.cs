@@ -1,9 +1,8 @@
-using System;
 using UnityEngine;
 
 namespace MMF.Truck
 {
-    /// <summary>Placeholder truck geometry and player occupancy.</summary>
+    /// <summary>Placeholder truck geometry and interior position checks.</summary>
     public sealed class TruckArea : MonoBehaviour
     {
         [SerializeField] private Vector2 _size = new Vector2(12f, 7f);
@@ -11,11 +10,6 @@ namespace MMF.Truck
         [SerializeField, Min(0.01f)] private float _wallThickness = 0.5f;
         [SerializeField] private Transform _floor = null;
         [SerializeField] private Transform[] _walls = new Transform[6];
-        [SerializeField] private Transform _player = null;
-        /// <summary>Raised when the tracked player enters or leaves the interior.</summary>
-        public event Action<bool> OccupancyChanged;
-        /// <summary>Current tracked player occupancy.</summary>
-        public bool IsPlayerInside { get; private set; }
         /// <summary>Tests the position against the wall inner faces.</summary>
         public bool Contains(Vector2 position)
         {
@@ -23,14 +17,7 @@ namespace MMF.Truck
             return Mathf.Abs(local.x) < _size.x * 0.5f - _wallThickness &&
                    Mathf.Abs(local.y) < _size.y * 0.5f - _wallThickness;
         }
-        private void Start() { RefreshLayout(); IsPlayerInside = Contains(_player.position); }
-        private void LateUpdate()
-        {
-            bool inside = Contains(_player.position);
-            if (inside == IsPlayerInside) return;
-            IsPlayerInside = inside;
-            OccupancyChanged?.Invoke(inside);
-        }
+        private void Start() { RefreshLayout(); }
         /// <summary>Applies Inspector dimensions to floor and six wall segments.</summary>
         public void RefreshLayout()
         {

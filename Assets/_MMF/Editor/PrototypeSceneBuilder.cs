@@ -87,7 +87,7 @@ namespace MMF.Editor
 
 
             PlayerBackpack backpack = CreatePlayer(sprite, controls);
-            TruckArea truck = CreateTruck(sprite, backpack.transform);
+            TruckArea truck = CreateTruck(sprite);
             FollowCamera follow = camera.gameObject.AddComponent<FollowCamera>();
             SetReference(follow, "_target", backpack.transform);
             SetReference(follow, "_map", arena);
@@ -107,13 +107,12 @@ namespace MMF.Editor
             Debug.Log("Prototype scene rebuilt: " + ScenePath);
         }
 
-        private static TruckArea CreateTruck(Sprite sprite, Transform player)
+        private static TruckArea CreateTruck(Sprite sprite)
         {
             TruckArea truck = new GameObject("Truck").AddComponent<TruckArea>();
             SpriteRenderer floor = CreateSprite("Truck Floor", sprite, new Color(0.7f, 0.67f, 0.52f), 0);
             floor.transform.SetParent(truck.transform, false);
             SetReference(truck, "_floor", floor.transform);
-            SetReference(truck, "_player", player);
             SerializedObject data = new SerializedObject(truck);
             SerializedProperty walls = data.FindProperty("_walls");
             walls.arraySize = 6;

@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 namespace MMF.Player
 {
-    /// <summary>Reads local keyboard movement and forwards it to the movement component.</summary>
+    /// <summary>Reads local movement and inventory input and forwards it to player components.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(PlayerMovement))]
     public sealed class PlayerInputReader : MonoBehaviour
@@ -13,6 +13,8 @@ namespace MMF.Player
         private InputActionAsset _controlsInstance;
         private InputAction _moveAction;
         private PlayerMovement _movement;
+        private PlayerBackpack _backpack;
+        private InputActionMap _gameplay;
 
         /// <summary>The current local movement direction, limited to unit length.</summary>
         public Vector2 MoveInput { get; private set; }
@@ -20,6 +22,7 @@ namespace MMF.Player
         private void Awake()
         {
             _movement = GetComponent<PlayerMovement>();
+            _backpack = GetComponent<PlayerBackpack>();
             if (_controls == null)
             {
                 Debug.LogError("PlayerInputReader requires the MMFControls input asset.", this);
@@ -30,13 +33,21 @@ namespace MMF.Player
             // Each reader owns its action state; disabling one cannot disable another.
             _controlsInstance = Instantiate(_controls);
             _moveAction = _controlsInstance.FindAction("Gameplay/Move", true);
+            _gameplay = _controlsInstance.FindActionMap("Gameplay", true);
+            for (int i = 0; i < 5; i++)
+            {
+                int slot = i;
+                _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => _backpack?.SelectSlot(slot);
+            }
+            _gameplay.FindAction("ScrollSlot", true).performed += context => _backpack?.ScrollSlot(context.ReadValue<float>());
+            _gameplay.FindAction("Drop", true).performed += context => _backpack?.Drop();
             _moveAction.performed += OnMove;
             _moveAction.canceled += OnMove;
         }
 
         private void OnEnable()
         {
-            _moveAction?.Enable();
+            _gameplay?.Enable();
         }
 
         private void OnMove(InputAction.CallbackContext context)
@@ -47,7 +58,7 @@ namespace MMF.Player
 
         private void OnDisable()
         {
-            _moveAction?.Disable();
+            _gameplay?.Disable();
             MoveInput = Vector2.zero;
             _movement.SetMoveDirection(Vector2.zero);
         }

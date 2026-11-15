@@ -1,6 +1,13 @@
 {
-    "name": "MMF.Editor",
-    "rootNamespace": "MMF.Editor",
-    "references": ["MMF.Runtime", "Unity.InputSystem", "Unity.RenderPipelines.Universal.2D.Runtime"],
-    "includePlatforms": ["Editor"]
+    "name":  "MMF.Editor",
+    "rootNamespace":  "MMF.Editor",
+    "references":  [
+                       "MMF.Runtime",
+                       "Unity.InputSystem",
+                       "Unity.RenderPipelines.Universal.2D.Runtime",
+                       "UnityEngine.UI"
+                   ],
+    "includePlatforms":  [
+                             "Editor"
+                         ]
 }

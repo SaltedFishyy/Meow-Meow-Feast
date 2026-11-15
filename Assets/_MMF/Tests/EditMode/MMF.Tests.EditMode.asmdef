@@ -1,0 +1,6 @@
+{
+    "name": "MMF.Tests.EditMode",
+    "references": ["MMF.Runtime"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

@@ -1,63 +1,163 @@
-{
-    "name": "MMFControls",
-    "maps": [
-        {
-            "name": "Gameplay",
-            "id": "09b533cc-186e-4417-8113-2652f79b1504",
-            "actions": [
-                {
-                    "name": "Move",
-                    "type": "Value",
-                    "id": "be94de95-2caf-43bf-890b-7922af5b1f36",
-                    "expectedControlType": "Vector2",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": true
-                }
-            ],
-            "bindings": [
-                {
-                    "name": "WASD",
-                    "id": "27e79f37-e341-4e87-bc6e-06f2f499fba7",
-                    "path": "2DVector",
-                    "action": "Move",
-                    "isComposite": true,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "up",
-                    "id": "416d3db7-555b-4c67-844c-e1d280ef5dc5",
-                    "path": "<Keyboard>/w",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "down",
-                    "id": "442fe173-a4a2-47c7-bdae-b62fb0f674da",
-                    "path": "<Keyboard>/s",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "left",
-                    "id": "d9f7fead-af18-43e0-ab34-f670a9069488",
-                    "path": "<Keyboard>/a",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "right",
-                    "id": "ef8eeac4-2642-4287-9ef0-d32ba9267141",
-                    "path": "<Keyboard>/d",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                }
-            ]
-        }
-    ],
-    "controlSchemes": []
+﻿{
+    "name":  "MMFControls",
+    "maps":  [
+                 {
+                     "name":  "Gameplay",
+                     "id":  "09b533cc-186e-4417-8113-2652f79b1504",
+                     "actions":  [
+                                     {
+                                         "name":  "Move",
+                                         "type":  "Value",
+                                         "id":  "be94de95-2caf-43bf-890b-7922af5b1f36",
+                                         "expectedControlType":  "Vector2",
+                                         "processors":  "",
+                                         "interactions":  "",
+                                         "initialStateCheck":  true
+                                     },
+                                     {
+                                         "name":  "SelectSlot1",
+                                         "id":  "88013b9e-152d-42d5-89e9-87e107c025ba",
+                                         "type":  "Button",
+                                         "expectedControlType":  "Button"
+                                     },
+                                     {
+                                         "name":  "SelectSlot2",
+                                         "id":  "83320a38-0e62-47f0-b77c-fe8b23b9f141",
+                                         "type":  "Button",
+                                         "expectedControlType":  "Button"
+                                     },
+                                     {
+                                         "name":  "SelectSlot3",
+                                         "id":  "5f6dd99c-20f5-4cd9-947e-2311d51b1701",
+                                         "type":  "Button",
+                                         "expectedControlType":  "Button"
+                                     },
+                                     {
+                                         "name":  "SelectSlot4",
+                                         "id":  "06acf6e8-a3c2-4616-946d-1de5e80922bc",
+                                         "type":  "Button",
+                                         "expectedControlType":  "Button"
+                                     },
+                                     {
+                                         "name":  "SelectSlot5",
+                                         "id":  "31d7bed2-a950-44ca-9a1f-5fdef1523f85",
+                                         "type":  "Button",
+                                         "expectedControlType":  "Button"
+                                     },
+                                     {
+                                         "name":  "ScrollSlot",
+                                         "id":  "8b83fc52-a43d-4a1d-843b-3b590675c7f7",
+                                         "type":  "PassThrough",
+                                         "expectedControlType":  "Axis"
+                                     },
+                                     {
+                                         "name":  "Drop",
+                                         "id":  "d224ab8c-49bc-46ed-bdf6-ff0d76d1d1ff",
+                                         "type":  "Button",
+                                         "expectedControlType":  "Button"
+                                     }
+                                 ],
+                     "bindings":  [
+                                      {
+                                          "name":  "WASD",
+                                          "id":  "27e79f37-e341-4e87-bc6e-06f2f499fba7",
+                                          "path":  "2DVector",
+                                          "action":  "Move",
+                                          "isComposite":  true,
+                                          "isPartOfComposite":  false
+                                      },
+                                      {
+                                          "name":  "up",
+                                          "id":  "416d3db7-555b-4c67-844c-e1d280ef5dc5",
+                                          "path":  "\u003cKeyboard\u003e/w",
+                                          "action":  "Move",
+                                          "isComposite":  false,
+                                          "isPartOfComposite":  true
+                                      },
+                                      {
+                                          "name":  "down",
+                                          "id":  "442fe173-a4a2-47c7-bdae-b62fb0f674da",
+                                          "path":  "\u003cKeyboard\u003e/s",
+                                          "action":  "Move",
+                                          "isComposite":  false,
+                                          "isPartOfComposite":  true
+                                      },
+                                      {
+                                          "name":  "left",
+                                          "id":  "d9f7fead-af18-43e0-ab34-f670a9069488",
+                                          "path":  "\u003cKeyboard\u003e/a",
+                                          "action":  "Move",
+                                          "isComposite":  false,
+                                          "isPartOfComposite":  true
+                                      },
+                                      {
+                                          "name":  "right",
+                                          "id":  "ef8eeac4-2642-4287-9ef0-d32ba9267141",
+                                          "path":  "\u003cKeyboard\u003e/d",
+                                          "action":  "Move",
+                                          "isComposite":  false,
+                                          "isPartOfComposite":  true
+                                      },
+                                      {
+                                          "id":  "0a11a252-0717-4391-aec2-ed1eda2a2607",
+                                          "name":  "",
+                                          "path":  "\u003cKeyboard\u003e/1",
+                                          "isPartOfComposite":  false,
+                                          "isComposite":  false,
+                                          "action":  "SelectSlot1"
+                                      },
+                                      {
+                                          "id":  "5e5409ec-2416-43bd-93ac-083278f6c417",
+                                          "name":  "",
+                                          "path":  "\u003cKeyboard\u003e/2",
+                                          "isPartOfComposite":  false,
+                                          "isComposite":  false,
+                                          "action":  "SelectSlot2"
+                                      },
+                                      {
+                                          "id":  "c15d53c9-1ccd-42a9-a44c-589770aad366",
+                                          "name":  "",
+                                          "path":  "\u003cKeyboard\u003e/3",
+                                          "isPartOfComposite":  false,
+                                          "isComposite":  false,
+                                          "action":  "SelectSlot3"
+                                      },
+                                      {
+                                          "id":  "f2f5440b-e193-4ec6-95b9-835c022e333c",
+                                          "name":  "",
+                                          "path":  "\u003cKeyboard\u003e/4",
+                                          "isPartOfComposite":  false,
+                                          "isComposite":  false,
+                                          "action":  "SelectSlot4"
+                                      },
+                                      {
+                                          "id":  "46f06faf-9f4e-45ab-9811-98ac08a0336d",
+                                          "name":  "",
+                                          "path":  "\u003cKeyboard\u003e/5",
+                                          "isPartOfComposite":  false,
+                                          "isComposite":  false,
+                                          "action":  "SelectSlot5"
+                                      },
+                                      {
+                                          "id":  "6ebf3d9e-db25-41b4-b5f6-ccbd3a8ad5f3",
+                                          "name":  "",
+                                          "path":  "\u003cMouse\u003e/scroll/y",
+                                          "isPartOfComposite":  false,
+                                          "isComposite":  false,
+                                          "action":  "ScrollSlot"
+                                      },
+                                      {
+                                          "id":  "27e9d833-5710-4341-95bc-037ee5415fa6",
+                                          "name":  "",
+                                          "path":  "\u003cKeyboard\u003e/q",
+                                          "isPartOfComposite":  false,
+                                          "isComposite":  false,
+                                          "action":  "Drop"
+                                      }
+                                  ]
+                 }
+             ],
+    "controlSchemes":  [
+
+                       ]
 }

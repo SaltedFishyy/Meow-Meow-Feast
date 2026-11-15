@@ -62,6 +62,7 @@ Unity YAML (`.unity`, `.prefab`, `.asset`) is fragile to hand-edit. Instead:
 - **Only touch the files listed under "要改的文件" in the task.** If you believe another file must change, don't change it — explain why under "疑问".
 - Inside a file you do change, **change only the lines the task needs**. Do not rewrite whole methods or files, reformat, reorder members, rename things, or change line endings / BOM / encoding of untouched code.
 - Large refactors are never your call; if one seems necessary, describe it under "疑问" and stop.
+- **Refactor tasks** (task title says 整理 / refactor): restructure only. **No new features and no behavior change** — the game must play exactly as before. Keep existing tests passing; add tests if they help prove behavior is unchanged.
 
 ## No dead code (keep the project clean)
 

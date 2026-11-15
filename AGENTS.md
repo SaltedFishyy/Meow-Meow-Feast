@@ -56,6 +56,13 @@ Unity YAML (`.unity`, `.prefab`, `.asset`) is fragile to hand-edit. Instead:
 - Do not edit `docs/GDD.md`, `CLAUDE.md` or this file. Do not commit, push, rebase or reset — the lead handles Git.
 - Do not install packages unless the task lists them.
 
+## Good structure, minimal changes
+
+- **One script, one job.** Keep rules, display, input and data in separate classes. For a new feature, prefer adding a **new script** that hooks into existing systems through events or small public methods, rather than growing an existing script.
+- **Only touch the files listed under "要改的文件" in the task.** If you believe another file must change, don't change it — explain why under "疑问".
+- Inside a file you do change, **change only the lines the task needs**. Do not rewrite whole methods or files, reformat, reorder members, rename things, or change line endings / BOM / encoding of untouched code.
+- Large refactors are never your call; if one seems necessary, describe it under "疑问" and stop.
+
 ## No dead code (keep the project clean)
 
 - **Delete code your change makes unused**: scripts it replaces (together with their `.meta`), methods / properties / fields / events nobody calls or subscribes to, commented-out code, unused `using`s, empty folders, obsolete logic in editor generators.

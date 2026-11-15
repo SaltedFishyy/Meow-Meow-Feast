@@ -1,0 +1,5 @@
+{
+    "name": "MMF.Runtime",
+    "rootNamespace": "MMF",
+    "references": ["Unity.InputSystem"]
+}

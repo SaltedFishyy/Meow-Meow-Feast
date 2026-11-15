@@ -273,6 +273,17 @@ namespace MMF.Editor
             SetReference(panel, "_status", status); SetReference(panel, "_panSprite", pan.sprite);
             PlayerInteractor interactor = backpack.GetComponent<PlayerInteractor>();
             SetReference(interactor, "_station", station); SetReference(interactor, "_panel", panel); SetReference(interactor, "_truck", truck);
+            var preview = new GameObject("Placement Preview").AddComponent<UnityEngine.Rendering.SortingGroup>();
+            preview.sortingOrder = 1;
+            SpriteRenderer shadow = CreateSprite("Placement Shadow", stationBody.sprite,
+                new Color(stationBody.color.r, stationBody.color.g, stationBody.color.b, 0.5f), 0);
+            SpriteRenderer failure = CreateSprite("Placement Failure", LoadMark(false), Color.red, 1);
+            shadow.transform.SetParent(preview.transform, false);
+            failure.transform.SetParent(preview.transform, false);
+            shadow.enabled = false; failure.enabled = false;
+            SetReference(interactor, "_stationRenderer", stationBody);
+            SetReference(interactor, "_placementShadow", shadow);
+            SetReference(interactor, "_placementFailure", failure);
             view.gameObject.SetActive(false); AssetDatabase.SaveAssets();
         }
         private static RectTransform UiRect(string name, Transform parent, Vector2 size, Vector2 position)

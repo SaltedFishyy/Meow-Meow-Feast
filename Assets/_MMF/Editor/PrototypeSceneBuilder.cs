@@ -3,6 +3,7 @@ using MMF.Core;
 using MMF.Player;
 using MMF.Data;
 using MMF.UI;
+using MMF.Truck;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -13,7 +14,7 @@ using UnityEngine.UI;
 
 namespace MMF.Editor
 {
-    /// <summary>Builds the movement and backpack prototype from source assets.</summary>
+    /// <summary>Builds the map, truck, follow camera and backpack prototype from source assets.</summary>
     public static class PrototypeSceneBuilder
     {
         private const string Root = "Assets/_MMF";
@@ -74,7 +75,7 @@ namespace MMF.Editor
             BoxCollider2D top = CreateWall("Top", bounds.transform);
             BoxCollider2D bottom = CreateWall("Bottom", bounds.transform);
 
-            PrototypeArena arena = bounds.AddComponent<PrototypeArena>();
+            MapBounds arena = bounds.AddComponent<MapBounds>();
             SerializedObject arenaData = new SerializedObject(arena);
             arenaData.FindProperty("_camera").objectReferenceValue = camera;
             arenaData.FindProperty("_ground").objectReferenceValue = ground.transform;
@@ -83,10 +84,19 @@ namespace MMF.Editor
             arenaData.FindProperty("_top").objectReferenceValue = top;
             arenaData.FindProperty("_bottom").objectReferenceValue = bottom;
             arenaData.ApplyModifiedPropertiesWithoutUndo();
-            arena.RefreshLayout();
+
 
             PlayerBackpack backpack = CreatePlayer(sprite, controls);
-            CreateBackpackContent(sprite, backpack);
+            TruckArea truck = CreateTruck(sprite, backpack.transform);
+            FollowCamera follow = camera.gameObject.AddComponent<FollowCamera>();
+            SetReference(follow, "_target", backpack.transform);
+            SetReference(follow, "_map", arena);
+            SetReference(follow, "_truck", truck);
+            RectTransform row = CreateBackpackContent(sprite, backpack);
+            SetReference(arena, "_follow", follow);
+            SetReference(arena, "_backpackRow", row);
+            Canvas.ForceUpdateCanvases();
+            arena.RefreshLayout();
             ValidateReferences(scene);
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
@@ -97,6 +107,27 @@ namespace MMF.Editor
             Debug.Log("Prototype scene rebuilt: " + ScenePath);
         }
 
+        private static TruckArea CreateTruck(Sprite sprite, Transform player)
+        {
+            TruckArea truck = new GameObject("Truck").AddComponent<TruckArea>();
+            SpriteRenderer floor = CreateSprite("Truck Floor", sprite, new Color(0.7f, 0.67f, 0.52f), 0);
+            floor.transform.SetParent(truck.transform, false);
+            SetReference(truck, "_floor", floor.transform);
+            SetReference(truck, "_player", player);
+            SerializedObject data = new SerializedObject(truck);
+            SerializedProperty walls = data.FindProperty("_walls");
+            walls.arraySize = 6;
+            for (int i = 0; i < walls.arraySize; i++)
+            {
+                SpriteRenderer wall = CreateSprite("Truck Wall " + i, sprite, new Color(0.12f, 0.14f, 0.16f), 1);
+                wall.transform.SetParent(truck.transform, false);
+                wall.gameObject.AddComponent<BoxCollider2D>();
+                walls.GetArrayElementAtIndex(i).objectReferenceValue = wall.transform;
+            }
+            data.ApplyModifiedPropertiesWithoutUndo();
+            truck.RefreshLayout();
+            return truck;
+        }
         private static Camera CreateCamera()
         {
             GameObject cameraObject = new GameObject("Main Camera");
@@ -113,7 +144,7 @@ namespace MMF.Editor
         private static PlayerBackpack CreatePlayer(Sprite sprite, InputActionAsset controls)
         {
             GameObject player = CreateSprite("Player", sprite,
-                new Color(1f, 0.69f, 0.24f), 0).gameObject;
+                new Color(1f, 0.69f, 0.24f), 2).gameObject;
             Rigidbody2D body = player.AddComponent<Rigidbody2D>();
             body.gravityScale = 0f;
             body.constraints = RigidbodyConstraints2D.FreezeRotation;
@@ -158,17 +189,24 @@ namespace MMF.Editor
             return item;
         }
 
-        private static void CreateBackpackContent(Sprite sprite, PlayerBackpack backpack)
+        private static RectTransform CreateBackpackContent(Sprite sprite, PlayerBackpack backpack)
         {
             EnsureFolder(Root + "/Data/Items");
             ItemDefinition meat = LoadItem("MonsterMeat", "怪肉", new Color(0.85f, 0.2f, 0.2f));
             ItemDefinition mushroom = LoadItem("Mushroom", "蘑菇", new Color(0.85f, 0.75f, 0.55f));
-            for (int i = 0; i < 8; i++)
+            Vector2[] positions =
+            {
+                new Vector2(-8f, 1f), new Vector2(9f, -2f),
+                new Vector2(-24f, 12f), new Vector2(24f, -11f),
+                new Vector2(2f, 6f), new Vector2(-12f, -8f),
+                new Vector2(24f, 12f), new Vector2(-24f, -11f)
+            };
+            for (int i = 0; i < positions.Length; i++)
             {
                 ItemDefinition item = i < 4 ? meat : mushroom;
-                float angle = i * Mathf.PI / 4f;
+
                 SpriteRenderer renderer = CreateSprite(item.name + " " + i, sprite, item.Color, 1);
-                renderer.transform.position = new Vector3(Mathf.Cos(angle) * 2.5f, Mathf.Sin(angle) * 2.5f, 0f);
+                renderer.transform.position = (Vector3)positions[i];
                 renderer.transform.localScale = Vector3.one * 0.4f;
                 WorldItem world = renderer.gameObject.AddComponent<WorldItem>();
                 SetReference(world, "_item", item);
@@ -185,6 +223,7 @@ namespace MMF.Editor
             row.anchorMin = row.anchorMax = new Vector2(0.5f, 0f);
             row.pivot = new Vector2(0.5f, 0f);
             row.anchoredPosition = new Vector2(0f, 20f);
+            row.sizeDelta = new Vector2(582f, 72f);
             BackpackBar bar = canvasObject.AddComponent<BackpackBar>();
             SetReference(bar, "_backpack", backpack);
             SetReference(bar, "_row", row);
@@ -194,6 +233,7 @@ namespace MMF.Editor
                 !font.HasCharacter('蘑') || !font.HasCharacter('菇') || !font.HasCharacter('空'))
                 Debug.LogError("Backpack font cannot display the required Chinese characters.");
             AssetDatabase.SaveAssets();
+            return row;
         }
 
         private static void ValidateReferences(Scene scene)
@@ -201,12 +241,12 @@ namespace MMF.Editor
             foreach (GameObject root in scene.GetRootGameObjects())
             foreach (MonoBehaviour component in root.GetComponentsInChildren<MonoBehaviour>(true))
             {
-                if (component == null) { Debug.LogError("Missing script under " + root.name); continue; }
+                if (component == null) throw new System.InvalidOperationException("Missing script under " + root.name);
                 if (component.GetType().Namespace == null || !component.GetType().Namespace.StartsWith("MMF.")) continue;
                 SerializedProperty property = new SerializedObject(component).GetIterator();
                 while (property.NextVisible(true))
                     if (property.propertyType == SerializedPropertyType.ObjectReference && property.objectReferenceValue == null)
-                        Debug.LogError(component.name + "/" + component.GetType().Name + ": missing " + property.propertyPath, component);
+                        throw new System.InvalidOperationException(component.name + "/" + component.GetType().Name + ": missing " + property.propertyPath);
             }
         }
 

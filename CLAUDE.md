@@ -81,6 +81,9 @@ Claude 只在两种情况下直接改代码：修改量极小（例如一处拼�
 - 场景（`.unity`）、预制体（`.prefab`）是 YAML，Codex 手改容易坏。优先让 Codex 写 **Editor 脚本**（`Assets/_MMF/Editor/`，菜单 `MMF/...`）来自动生成场景和预制体；实在需要用户手动操作时，在 DEVLOG 里写清楚每一步。
 - Unity 编辑器开着的时候不要用 batchmode 打开同一个项目。
 - 路径里有空格和中文，所有命令里的路径都要加引号。
+- **用 Unity CLI 验证**（编辑器开着时）：
+  - 编译检查：`unity recompile --project-path "C:\做饭游戏 MMF\Meow Meow Feast" --format json`
+  - 在编辑器里执行代码或菜单：`unity command --port <端口> script eval --caller plugin --skill unity-cli '<C#>'`。端口用 `unity status --format json` 查（目前是 7800）。`unity command` 加 `--project-path` 时匹配不到这个中文路径，所以要用 `--port`，并且放在 `script` 前面。
 
 ## 当前阶段
 

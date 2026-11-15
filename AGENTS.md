@@ -56,6 +56,14 @@ Unity YAML (`.unity`, `.prefab`, `.asset`) is fragile to hand-edit. Instead:
 - Do not edit `docs/GDD.md`, `CLAUDE.md` or this file. Do not commit, push, rebase or reset — the lead handles Git.
 - Do not install packages unless the task lists them.
 
+## No dead code (keep the project clean)
+
+- **Delete code your change makes unused**: scripts it replaces (together with their `.meta`), methods / properties / fields / events nobody calls or subscribes to, commented-out code, unused `using`s, empty folders, obsolete logic in editor generators.
+- Before deleting a script, check that no scene / prefab / asset references it (grep its GUID from the `.meta` under `Assets/`).
+- Don't write code "for later". Only add what this task needs; future tasks will add their own.
+- Only delete **code** (`.cs`, `.asmdef`, generator logic). Never delete art, audio, scenes or other assets — if you think one is unused, list it under "已知问题 / 未完成" instead.
+- List everything you deleted under "改动文件" (mark it 删除).
+
 ## Your final message (it is saved as the task report)
 
 Write it in Chinese, in this shape:

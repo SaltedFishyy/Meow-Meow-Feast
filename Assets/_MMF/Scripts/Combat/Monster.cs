@@ -9,7 +9,8 @@ namespace MMF.Combat
     public sealed class Monster : MonoBehaviour
     {
         [SerializeField] private MonsterDefinition _definition = null;
-        [SerializeField] private Transform _target = null;
+        private MonsterTargeting _targeting;
+        private BoxCollider2D _collider;
         private Rigidbody2D _body;
         private SpriteRenderer _renderer;
         private ContactFilter2D _filter;
@@ -25,6 +26,8 @@ namespace MMF.Combat
         private void Awake()
         {
             _body = GetComponent<Rigidbody2D>();
+            _targeting = GetComponent<MonsterTargeting>();
+            _collider = GetComponent<BoxCollider2D>();
             _renderer = GetComponent<SpriteRenderer>();
             _filter = new ContactFilter2D { useTriggers = false };
         }
@@ -47,6 +50,8 @@ namespace MMF.Combat
 
         private void FixedUpdate()
         {
+            Vector2 target = _targeting.TargetPosition(_body.position);
+            bool sliding = _knockback.sqrMagnitude <= 0f;
             Vector2 displacement;
             if (_knockback.sqrMagnitude > 0f)
             {
@@ -54,7 +59,7 @@ namespace MMF.Combat
                 _knockback = Vector2.zero;
             }
             else
-                displacement = Vector2.ClampMagnitude((Vector2)_target.position - _body.position,
+                displacement = Vector2.ClampMagnitude(target - _body.position,
                     _definition.Speed * Time.fixedDeltaTime);
             float distance = displacement.magnitude;
             if (distance <= 0f) return;
@@ -63,7 +68,27 @@ namespace MMF.Combat
             for (int i = 0; i < count; i++)
                 if (Vector2.Dot(_hits[i].normal, direction) < 0f)
                     distance = Mathf.Min(distance, Mathf.Max(0f, _hits[i].distance - ContactGap));
-            _body.MovePosition(_body.position + direction * distance);
+            Vector2 movement = direction * distance;
+            if (sliding)
+            {
+                Vector2 remaining = displacement - movement;
+                for (int i = 0; i < count; i++)
+                    if (_hits[i].distance <= distance + ContactGap && Vector2.Dot(remaining, _hits[i].normal) < 0f)
+                        remaining -= Vector2.Dot(remaining, _hits[i].normal) * _hits[i].normal;
+                float slideDistance = remaining.magnitude;
+                if (slideDistance > 0f)
+                {
+                    Vector2 slideDirection = remaining / slideDistance;
+                    int slideCount = Physics2D.BoxCast((Vector2)_collider.bounds.center + movement,
+                        _collider.bounds.size, _body.rotation, slideDirection, _filter, _hits,
+                        slideDistance + ContactGap);
+                    for (int i = 0; i < slideCount; i++)
+                        if (_hits[i].rigidbody != _body && Vector2.Dot(_hits[i].normal, slideDirection) < 0f)
+                            slideDistance = Mathf.Min(slideDistance, Mathf.Max(0f, _hits[i].distance - ContactGap));
+                    movement += slideDirection * slideDistance;
+                }
+            }
+            _body.MovePosition(_body.position + movement);
         }
 
         /// <summary>Applies positive damage and pushes along the supplied attack direction.</summary>

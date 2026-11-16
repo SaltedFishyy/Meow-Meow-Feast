@@ -182,9 +182,12 @@ namespace MMF.Editor
                 body.interpolation = RigidbodyInterpolation2D.Interpolate;
                 body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
                 visual.gameObject.AddComponent<BoxCollider2D>();
+                MonsterTargeting targeting = visual.gameObject.AddComponent<MonsterTargeting>();
+                SetReference(targeting, "_definition", definition);
+                SetReference(targeting, "_player", player.transform);
+                SetReference(targeting, "_truck", truck);
                 Monster monster = visual.gameObject.AddComponent<Monster>();
                 SetReference(monster, "_definition", definition);
-                SetReference(monster, "_target", truck.transform);
                 points.GetArrayElementAtIndex(i).objectReferenceValue = point;
                 monsters.GetArrayElementAtIndex(i).objectReferenceValue = monster;
             }

@@ -18,7 +18,14 @@ namespace MMF.Truck
             return Mathf.Abs(local.x) < _size.x * 0.5f - _wallThickness &&
                    Mathf.Abs(local.y) < _size.y * 0.5f - _wallThickness;
         }
+        /// <summary>Returns the center of the front (right) or rear (left) outer wall face.</summary>
+        public Vector2 EndPoint(bool front)
+        {
+            return (Vector2)transform.position + Vector2.right * (front ? _size.x : -_size.x) * 0.5f;
+        }
         private const float PlacementTolerance = 0.0001f;
+        /// <summary>World rectangle bounded by the wall outer faces.</summary>
+        public Rect ExteriorRect => new Rect((Vector2)transform.position - _size * 0.5f, _size);
         /// <summary>Interior rectangle bounded by the wall inner faces.</summary>
         public Rect InteriorRect => new Rect((Vector2)transform.position - _size * 0.5f + Vector2.one * _wallThickness,
             _size - Vector2.one * (2f * _wallThickness));

@@ -14,6 +14,13 @@ namespace MMF.Data
         [SerializeField, Min(0f)] private float _knockbackDistance = 0.3f;
         [SerializeField] private Color _color = new Color(0.6f, 0.25f, 0.8f);
 
+        [SerializeField, Min(0f)] private float _chaseStartDistance = 8f;
+        [SerializeField, Min(0f)] private float _chaseStopDistance = 10f;
+        [SerializeField, Range(0f, 1f)] private float _leftEndProbability = 0.7f;
+
+        public float ChaseStartDistance => _chaseStartDistance;
+        public float ChaseStopDistance => _chaseStopDistance;
+        public float LeftEndProbability => _leftEndProbability;
         public float Size => _size;
         public int Health => _health;
         public float Speed => _speed;

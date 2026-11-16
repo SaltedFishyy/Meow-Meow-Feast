@@ -18,10 +18,15 @@ namespace MMF.Combat
         private int _health;
         private float _flashRemaining;
         private Vector2 _knockback;
+        private Vector2 _avoidanceDirection;
+        private float _avoidanceRemaining;
         private const float ContactGap = 0.002f;
 
         /// <summary>Raised once after hiding a monster whose health reached zero.</summary>
         public event Action<Monster> Died;
+
+        /// <summary>Current sidestep direction, or zero while waiting or not avoiding.</summary>
+        public Vector2 AvoidanceDirection => _avoidanceRemaining > 0f ? _avoidanceDirection : Vector2.zero;
 
         private void Awake()
         {
@@ -37,6 +42,7 @@ namespace MMF.Combat
             _health = _definition.Health;
             _flashRemaining = 0f;
             _knockback = Vector2.zero;
+            _avoidanceRemaining = 0f;
             transform.localScale = Vector3.one * _definition.Size;
             _renderer.color = _definition.Color;
         }
@@ -68,6 +74,7 @@ namespace MMF.Combat
             for (int i = 0; i < count; i++)
                 if (Vector2.Dot(_hits[i].normal, direction) < 0f)
                     distance = Mathf.Min(distance, Mathf.Max(0f, _hits[i].distance - ContactGap));
+            if (sliding && TryAvoidMonster(count, direction, distance)) return;
             Vector2 movement = direction * distance;
             if (sliding)
             {
@@ -85,10 +92,65 @@ namespace MMF.Combat
                     for (int i = 0; i < slideCount; i++)
                         if (_hits[i].rigidbody != _body && Vector2.Dot(_hits[i].normal, slideDirection) < 0f)
                             slideDistance = Mathf.Min(slideDistance, Mathf.Max(0f, _hits[i].distance - ContactGap));
+                    if (TryAvoidMonster(slideCount, slideDirection, slideDistance)) return;
                     movement += slideDirection * slideDistance;
                 }
             }
+            _avoidanceRemaining = 0f;
             _body.MovePosition(_body.position + movement);
+        }
+
+        private bool TryAvoidMonster(int count, Vector2 direction, float distance)
+        {
+            if (!IsBlockedByMonster(count, direction, distance, out Monster blocker)) return false;
+            Vector2 otherAvoidanceDirection = blocker.AvoidanceDirection;
+            float step = _definition.Speed * Time.fixedDeltaTime;
+            if (_avoidanceRemaining <= 0f)
+            {
+                Vector2 right = MonsterAvoidance.SelectDirection(direction, true, false);
+                bool rightClear = AvoidanceDistance(right, step) >= step;
+                bool leftClear = !rightClear && AvoidanceDistance(-right, step) >= step;
+                _avoidanceDirection = MonsterAvoidance.SelectDirection(direction, rightClear, leftClear,
+                    otherAvoidanceDirection);
+                _avoidanceRemaining = _definition.AvoidanceDuration;
+            }
+            else
+            {
+                Vector2 right = MonsterAvoidance.SelectDirection(direction, true, false);
+                // Handle the other monster starting its sidestep later in the same physics tick.
+                if (Vector2.Dot(_avoidanceDirection, right) < 0f)
+                    _avoidanceDirection = MonsterAvoidance.SelectDirection(direction, false, true,
+                        otherAvoidanceDirection);
+            }
+            float avoidanceStep = _definition.Speed * Mathf.Min(Time.fixedDeltaTime, _avoidanceRemaining);
+            float avoidanceDistance = AvoidanceDistance(_avoidanceDirection, avoidanceStep);
+            _avoidanceRemaining = Mathf.Max(0f, _avoidanceRemaining - Time.fixedDeltaTime);
+            if (avoidanceDistance <= 0f && _avoidanceDirection.sqrMagnitude > 0f) _avoidanceRemaining = 0f;
+            _body.MovePosition(_body.position + _avoidanceDirection * avoidanceDistance);
+            return true;
+        }
+
+        private bool IsBlockedByMonster(int count, Vector2 direction, float distance, out Monster blocker)
+        {
+            blocker = null;
+            for (int i = 0; i < count; i++)
+            {
+                if (_hits[i].rigidbody == _body || _hits[i].distance > distance + ContactGap ||
+                    Vector2.Dot(_hits[i].normal, direction) >= 0f) continue;
+                if (!_hits[i].collider.TryGetComponent<Monster>(out Monster monster)) return false;
+                blocker = monster;
+            }
+            return blocker != null;
+        }
+
+        private float AvoidanceDistance(Vector2 direction, float distance)
+        {
+            if (direction.sqrMagnitude <= 0f || distance <= 0f) return 0f;
+            int count = _body.Cast(direction, _filter, _hits, distance + ContactGap);
+            for (int i = 0; i < count; i++)
+                if (Vector2.Dot(_hits[i].normal, direction) < 0f)
+                    distance = Mathf.Min(distance, Mathf.Max(0f, _hits[i].distance - ContactGap));
+            return distance;
         }
 
         /// <summary>Applies positive damage and pushes along the supplied attack direction.</summary>

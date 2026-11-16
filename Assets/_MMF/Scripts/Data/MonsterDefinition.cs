@@ -18,6 +18,9 @@ namespace MMF.Data
         [SerializeField, Min(0f)] private float _chaseStopDistance = 10f;
         [SerializeField, Range(0f, 1f)] private float _leftEndProbability = 0.7f;
 
+        [SerializeField, Min(0f)] private float _avoidanceDuration = 0.5f;
+
+        public float AvoidanceDuration => _avoidanceDuration;
         public float ChaseStartDistance => _chaseStartDistance;
         public float ChaseStopDistance => _chaseStopDistance;
         public float LeftEndProbability => _leftEndProbability;

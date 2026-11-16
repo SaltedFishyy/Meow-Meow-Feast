@@ -39,6 +39,25 @@ namespace MMF.Combat
             float padding = halfSize + WallClearance;
             Rect bounds = Rect.MinMaxRect(truck.xMin - padding, truck.yMin - padding,
                 truck.xMax + padding, truck.yMax + padding);
+            if (bounds.Contains(position) && !truck.Contains(position))
+            {
+                // Recover clearance-band routes from the nearest padded edge.
+                float nearest = position.x - bounds.xMin;
+                Vector2 projected = new Vector2(bounds.xMin, position.y);
+                if (bounds.xMax - position.x < nearest)
+                {
+                    nearest = bounds.xMax - position.x;
+                    projected = new Vector2(bounds.xMax, position.y);
+                }
+                if (position.y - bounds.yMin < nearest)
+                {
+                    nearest = position.y - bounds.yMin;
+                    projected = new Vector2(position.x, bounds.yMin);
+                }
+                if (bounds.yMax - position.y < nearest)
+                    projected = new Vector2(position.x, bounds.yMax);
+                position = projected;
+            }
             if (!CrossesInterior(position, destination, bounds)) return destination;
 
             float shortest = float.PositiveInfinity;

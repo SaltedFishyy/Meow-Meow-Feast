@@ -20,11 +20,27 @@ namespace MMF.Tests
                 Is.EqualTo(new Vector2(cornerX, cornerY)));
         }
 
+        [TestCase(-0.4f, -3.9f, 6.5f, 0f, 6.5f, -4f)]
+        [TestCase(0.4f, -3.9f, -6.5f, 0f, -6.5f, -4f)]
+        [TestCase(-0.4f, 3.9f, 6.5f, 0f, 6.5f, 4f)]
+        [TestCase(0.4f, 3.9f, -6.5f, 0f, -6.5f, 4f)]
+        [TestCase(-6.4f, 0f, 6.5f, 0f, -6.5f, -4f)]
+        [TestCase(6.4f, 0f, -6.5f, 0f, 6.5f, 4f)]
+        public void ClearanceBandStartUsesNearestEdgeCorner(float x, float y, float targetX,
+            float targetY, float cornerX, float cornerY)
+        {
+            Assert.That(MonsterTargeting.NextWaypoint(new Vector2(x, y),
+                new Vector2(targetX, targetY), new Rect(-6f, -3.5f, 12f, 7f), 0.4f),
+                Is.EqualTo(new Vector2(cornerX, cornerY)));
+        }
+
         [TestCase(13f, 2f, 6.5f, 0f)]
         [TestCase(6.5f, 4f, 6.5f, 0f)]
         [TestCase(-6.5f, 4f, -6.5f, 0f)]
         [TestCase(0f, 10f, 10f, 10f)]
         [TestCase(6.5f, 0f, 6.5f, 0f)]
+        [TestCase(6.4f, 0f, 6.5f, 0f)]
+        [TestCase(0f, -3.9f, 0f, -6f)]
         public void ClearRouteGoesDirectlyToDestination(float x, float y, float targetX, float targetY)
         {
             Vector2 destination = new Vector2(targetX, targetY);
@@ -46,6 +62,23 @@ namespace MMF.Tests
                 position = Vector2.MoveTowards(position, next, 1.5f * 0.02f);
                 Assert.That(Mathf.Abs(position.x) >= 6.5f - 0.0001f ||
                     Mathf.Abs(position.y) >= 4f - 0.0001f, Is.True, "Route cuts through padded truck");
+            }
+            Assert.That(Vector2.Distance(position, destination), Is.LessThan(0.001f));
+        }
+
+        [TestCase(-0.4f, 6.5f)]
+        [TestCase(0.4f, -6.5f)]
+        public void ClearanceBandRouteReachesEndWithinFifteenSeconds(float x, float targetX)
+        {
+            Vector2 position = new Vector2(x, -3.9f);
+            Vector2 destination = new Vector2(targetX, 0f);
+            Rect truck = new Rect(-6f, -3.5f, 12f, 7f);
+            for (int frame = 0; frame < 750; frame++)
+            {
+                Vector2 next = MonsterTargeting.NextWaypoint(position, destination, truck, 0.4f);
+                position = Vector2.MoveTowards(position, next, 1.5f * 0.02f);
+                Assert.That(Mathf.Abs(position.x) >= 6.4f - 0.0001f ||
+                    Mathf.Abs(position.y) >= 3.9f - 0.0001f, Is.True, "Route cuts through truck wall");
             }
             Assert.That(Vector2.Distance(position, destination), Is.LessThan(0.001f));
         }

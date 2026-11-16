@@ -17,6 +17,9 @@ namespace MMF.Combat
         private readonly HashSet<Monster> _hitMonsters = new HashSet<Monster>();
         private ContactFilter2D _filter;
 
+        /// <summary>Raised for each accepted swing, including swings inside the truck.</summary>
+        public event System.Action<WeaponDefinition, Vector2> Swung;
+
         private void Awake()
         {
             _backpack = GetComponent<PlayerBackpack>();
@@ -31,6 +34,7 @@ namespace MMF.Combat
             WeaponDefinition weapon = item.Weapon;
             _nextAttackTime = Time.time + weapon.Cooldown;
             Vector2 origin = transform.position;
+            Swung?.Invoke(weapon, aimWorldPosition - origin);
             if (_truck.Contains(origin)) return true;
 
             Vector2 aimDirection = aimWorldPosition - origin;

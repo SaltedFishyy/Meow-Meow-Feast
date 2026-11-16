@@ -92,6 +92,17 @@ namespace MMF.Editor
             TruckArea truck = CreateTruck(sprite);
             PlayerAttack attack = backpack.gameObject.AddComponent<PlayerAttack>();
             SetReference(attack, "_truck", truck);
+            GameObject swingFlash = new GameObject("Swing Flash");
+            swingFlash.transform.SetParent(backpack.transform, false);
+            MeshFilter flashFilter = swingFlash.AddComponent<MeshFilter>();
+            MeshRenderer flashRenderer = swingFlash.AddComponent<MeshRenderer>();
+            flashRenderer.sharedMaterial = AssetDatabase.GetBuiltinExtraResource<Material>("Sprites-Default.mat");
+            flashRenderer.sortingOrder = 5;
+            flashRenderer.enabled = false;
+            SwingFlash flash = swingFlash.AddComponent<SwingFlash>();
+            SetReference(flash, "_attack", attack);
+            SetReference(flash, "_meshFilter", flashFilter);
+            SetReference(flash, "_meshRenderer", flashRenderer);
             CreateMonsters(sprite, truck, backpack);
             FollowCamera follow = camera.gameObject.AddComponent<FollowCamera>();
             SetReference(follow, "_target", backpack.transform);

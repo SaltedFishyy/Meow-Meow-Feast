@@ -1,3 +1,4 @@
+using MMF.Combat;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -15,6 +16,8 @@ namespace MMF.Player
         private PlayerMovement _movement;
         private PlayerBackpack _backpack;
         private PlayerInteractor _interactor;
+        private PlayerAttack _attack;
+        private Camera _camera;
         private InputActionMap _gameplay;
 
         private void Awake()
@@ -22,6 +25,8 @@ namespace MMF.Player
             _movement = GetComponent<PlayerMovement>();
             _backpack = GetComponent<PlayerBackpack>();
             _interactor = GetComponent<PlayerInteractor>();
+            _attack = GetComponent<PlayerAttack>();
+            _camera = Camera.main;
             if (_controls == null)
             {
                 Debug.LogError("PlayerInputReader requires the MMFControls input asset.", this);
@@ -42,7 +47,15 @@ namespace MMF.Player
             _gameplay.FindAction("Drop", true).performed += context => { if (_interactor == null || _interactor.CanDrop) _backpack?.Drop(); };
             _gameplay.FindAction("Interact", true).performed += context => _interactor?.Interact();
             _gameplay.FindAction("Cancel", true).performed += context => _interactor?.Cancel();
-            _gameplay.FindAction("Lift", true).performed += context => _interactor?.Lift();
+            _gameplay.FindAction("Lift", true).performed += context =>
+            {
+                if (_interactor == null || _interactor.Lift()) return;
+                if (Mouse.current == null || _camera == null || _attack == null) return;
+                Vector2 screenPosition = Mouse.current.position.ReadValue();
+                Vector3 worldPosition = _camera.ScreenToWorldPoint(new Vector3(
+                    screenPosition.x, screenPosition.y, transform.position.z - _camera.transform.position.z));
+                _attack.TryAttack(worldPosition);
+            };
             foreach (char key in "WASD")
             {
                 char letter = key;

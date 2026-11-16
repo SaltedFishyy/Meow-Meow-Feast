@@ -73,22 +73,23 @@ namespace MMF.Player
             Cancel(); ReturnContents(false);
         }
         /// <summary>Carries the pan or places it on a valid interior cell.</summary>
-        public void Lift()
+        public bool Lift()
         {
-            if (Cooking) return;
+            if (Cooking) return true;
             if (!_carrying)
             {
-                if (!_station.InRange(transform.position)) return;
+                if (!_station.InRange(transform.position)) return false;
                 _carrying = true; _station.SetCarried(true);
                 _station.transform.SetParent(transform, false); _station.transform.localPosition = _carryOffset;
-                return;
+                return true;
             }
             // EditMode callers may invoke Lift before Awake has run.
             if (_movement == null) _movement = GetComponent<PlayerMovement>();
-            if (!TryGetPlacement(out Vector2 target)) return;
+            if (!TryGetPlacement(out Vector2 target)) return true;
             _station.transform.SetParent(null, true); _station.transform.position = target;
             _station.SetCarried(false); _carrying = false;
             HidePlacement();
+            return true;
         }
         private bool TryGetPlacement(out Vector2 target)
         {

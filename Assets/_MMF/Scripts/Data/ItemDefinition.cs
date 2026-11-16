@@ -10,6 +10,8 @@ namespace MMF.Data
         [SerializeField] private Color _color = Color.white;
         [SerializeField] private ItemDefinition _fryingResult = null;
         [SerializeField] private bool _neverExpiresOnGround = false;
+        [SerializeField] private WeaponDefinition _weapon = null;
+        public WeaponDefinition Weapon => _weapon;
         public bool NeverExpiresOnGround => _neverExpiresOnGround;
         public ItemDefinition FryingResult => _fryingResult;
         public string Id => _id;

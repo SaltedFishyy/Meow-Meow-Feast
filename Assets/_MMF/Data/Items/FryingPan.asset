@@ -17,3 +17,4 @@ MonoBehaviour:
   _color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
   _fryingResult: {fileID: 0}
   _neverExpiresOnGround: 1
+  _weapon: {fileID: 11400000, guid: 158c041d082fd794a81f51f6877062a7, type: 2}

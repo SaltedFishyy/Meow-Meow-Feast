@@ -90,6 +90,8 @@ namespace MMF.Editor
 
             PlayerBackpack backpack = CreatePlayer(sprite, controls);
             TruckArea truck = CreateTruck(sprite);
+            PlayerAttack attack = backpack.gameObject.AddComponent<PlayerAttack>();
+            SetReference(attack, "_truck", truck);
             CreateMonsters(sprite, truck, backpack);
             FollowCamera follow = camera.gameObject.AddComponent<FollowCamera>();
             SetReference(follow, "_target", backpack.transform);
@@ -243,6 +245,17 @@ namespace MMF.Editor
             data.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        private static WeaponDefinition LoadFryingPanWeapon()
+        {
+            EnsureFolder(Root + "/Data/Weapons");
+            string path = Root + "/Data/Weapons/FryingPan.asset";
+            WeaponDefinition weapon = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(path);
+            if (weapon != null) return weapon;
+            weapon = ScriptableObject.CreateInstance<WeaponDefinition>();
+            AssetDatabase.CreateAsset(weapon, path);
+            return weapon;
+        }
+
         private static ItemDefinition LoadItem(string id, string displayName, Color color)
         {
             string path = Root + "/Data/Items/" + id + ".asset";
@@ -267,6 +280,7 @@ namespace MMF.Editor
             panData.FindProperty("_displayName").stringValue = "平底锅";
             panData.FindProperty("_color").colorValue = new Color(0.55f, 0.55f, 0.55f);
             panData.FindProperty("_fryingResult").objectReferenceValue = null;
+            panData.FindProperty("_weapon").objectReferenceValue = LoadFryingPanWeapon();
             panData.FindProperty("_neverExpiresOnGround").boolValue = true;
             panData.ApplyModifiedPropertiesWithoutUndo();
             SerializedObject backpackData = new SerializedObject(backpack);

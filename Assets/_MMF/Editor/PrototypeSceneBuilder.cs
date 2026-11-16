@@ -154,6 +154,7 @@ namespace MMF.Editor
                 definition = ScriptableObject.CreateInstance<MonsterDefinition>();
                 AssetDatabase.CreateAsset(definition, path);
             }
+            DropTable drops = LoadMonsterDrops();
             MonsterSpawner spawner = new GameObject("Monster Spawner").AddComponent<MonsterSpawner>();
             SetReference(spawner, "_definition", definition);
             SerializedObject truckData = new SerializedObject(truck);
@@ -201,11 +202,68 @@ namespace MMF.Editor
                 SetReference(targeting, "_truck", truck);
                 Monster monster = visual.gameObject.AddComponent<Monster>();
                 SetReference(monster, "_definition", definition);
+                MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
+                SetReference(dropsComponent, "_dropTable", drops);
+                SetReference(dropsComponent, "_sprite", sprite);
+                SerializedObject dropsData = new SerializedObject(dropsComponent);
+                dropsData.FindProperty("_scatterRadius").floatValue = 0.5f;
+                dropsData.FindProperty("_size").floatValue = 0.4f;
+                dropsData.FindProperty("_lifetime").floatValue = 60f;
+                dropsData.ApplyModifiedPropertiesWithoutUndo();
                 points.GetArrayElementAtIndex(i).objectReferenceValue = point;
                 monsters.GetArrayElementAtIndex(i).objectReferenceValue = monster;
             }
             spawnData.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
+        }
+
+        private static DropTable LoadMonsterDrops()
+        {
+            EnsureFolder(Root + "/Data/Items");
+            ItemDefinition meat = LoadItem("MonsterMeat", "怪肉", new Color(0.85f, 0.2f, 0.2f));
+            ItemDefinition arm = LoadMonsterPart("MonsterArm", "怪物手臂", new Color(0.75f, 0.35f, 0.55f));
+            ItemDefinition leg = LoadMonsterPart("MonsterLeg", "怪物腿", new Color(0.8f, 0.5f, 0.25f));
+            string path = Root + "/Data/Monsters/CursedDumplingDrops.asset";
+            DropTable table = AssetDatabase.LoadAssetAtPath<DropTable>(path);
+            if (table != null) return table;
+            table = ScriptableObject.CreateInstance<DropTable>();
+            SerializedObject data = new SerializedObject(table);
+            SerializedProperty entries = data.FindProperty("_entries");
+            ItemDefinition[] items = { meat, arm, leg };
+            float[] chances = { 0.6f, 0.3f, 0.3f };
+            entries.arraySize = items.Length;
+            for (int i = 0; i < items.Length; i++)
+            {
+                SerializedProperty entry = entries.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("_item").objectReferenceValue = items[i];
+                entry.FindPropertyRelative("_chance").floatValue = chances[i];
+            }
+            data.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.CreateAsset(table, path);
+            return table;
+        }
+
+        private static ItemDefinition LoadMonsterPart(string id, string displayName, Color color)
+        {
+            Color friedColor = color * new Color(0.65f, 0.65f, 0.65f, 1f);
+            ItemDefinition fried = LoadItem("Fried" + id, "煎" + displayName, friedColor);
+            ConfigureMonsterPart(fried, "Fried" + id, "煎" + displayName, friedColor, null);
+            ItemDefinition raw = LoadItem(id, displayName, color);
+            ConfigureMonsterPart(raw, id, displayName, color, fried);
+            return raw;
+        }
+
+        private static void ConfigureMonsterPart(ItemDefinition item, string id, string displayName,
+            Color color, ItemDefinition fryingResult)
+        {
+            SerializedObject data = new SerializedObject(item);
+            data.FindProperty("_id").stringValue = id;
+            data.FindProperty("_displayName").stringValue = displayName;
+            data.FindProperty("_color").colorValue = color;
+            data.FindProperty("_fryingResult").objectReferenceValue = fryingResult;
+            data.FindProperty("_weapon").objectReferenceValue = null;
+            data.FindProperty("_neverExpiresOnGround").boolValue = false;
+            data.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Camera CreateCamera()
@@ -299,24 +357,19 @@ namespace MMF.Editor
             startingItems.arraySize = 1;
             startingItems.GetArrayElementAtIndex(0).objectReferenceValue = fryingPan;
             backpackData.ApplyModifiedPropertiesWithoutUndo();
-            ItemDefinition meat = LoadItem("MonsterMeat", "怪肉", new Color(0.85f, 0.2f, 0.2f));
             ItemDefinition mushroom = LoadItem("Mushroom", "蘑菇", new Color(0.85f, 0.75f, 0.55f));
             Vector2[] positions =
             {
-                new Vector2(-8f, 1f), new Vector2(9f, -2f),
-                new Vector2(-24f, 12f), new Vector2(24f, -11f),
                 new Vector2(2f, 6f), new Vector2(-12f, -8f),
                 new Vector2(24f, 12f), new Vector2(-24f, -11f)
             };
             for (int i = 0; i < positions.Length; i++)
             {
-                ItemDefinition item = i < 4 ? meat : mushroom;
-
-                SpriteRenderer renderer = CreateSprite(item.name + " " + i, sprite, item.Color, 1);
+                SpriteRenderer renderer = CreateSprite(mushroom.name + " " + i, sprite, mushroom.Color, 1);
                 renderer.transform.position = (Vector3)positions[i];
                 renderer.transform.localScale = Vector3.one * 0.4f;
                 WorldItem world = renderer.gameObject.AddComponent<WorldItem>();
-                SetReference(world, "_item", item);
+                SetReference(world, "_item", mushroom);
                 SetReference(world, "_renderer", renderer);
             }
             GameObject canvasObject = new GameObject("Backpack Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));

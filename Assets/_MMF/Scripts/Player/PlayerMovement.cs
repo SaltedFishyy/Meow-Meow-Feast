@@ -22,6 +22,20 @@ namespace MMF.Player
         }
         private Vector2 _moveDirection;
         private bool _blocked;
+        private float _speedMultiplier = 1f;
+
+        /// <summary>Current movement intent, or zero while movement is blocked.</summary>
+        public Vector2 MoveDirection => _blocked ? Vector2.zero : _moveDirection;
+
+        /// <summary>Unmodified maximum movement speed.</summary>
+        public float MaxSpeed => _maxSpeed;
+
+        /// <summary>Sets the target speed scale without changing acceleration or input.</summary>
+        public void SetSpeedMultiplier(float multiplier)
+        {
+            _speedMultiplier = Mathf.Max(0f, multiplier);
+        }
+
         public Vector2 LastMoveDirection { get; private set; } = Vector2.down;
         /// <summary>Immediately stops the body while cooking owns input.</summary>
         public void SetBlocked(bool blocked)
@@ -50,7 +64,7 @@ namespace MMF.Player
         private void FixedUpdate()
         {
             if (_blocked) { _body.linearVelocity = Vector2.zero; return; }
-            Vector2 targetVelocity = _moveDirection * _maxSpeed;
+            Vector2 targetVelocity = _moveDirection * (_maxSpeed * _speedMultiplier);
             float duration = _moveDirection.sqrMagnitude > 0f
                 ? _accelerationTime : _decelerationTime;
             _body.linearVelocity = duration <= 0f

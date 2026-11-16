@@ -289,7 +289,10 @@ namespace MMF.Editor
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             player.AddComponent<BoxCollider2D>().size = Vector2.one;
-            player.AddComponent<PlayerMovement>();
+            PlayerMovement movement = player.AddComponent<PlayerMovement>();
+            PlayerShove shove = player.AddComponent<PlayerShove>();
+            SetReference(shove, "_movement", movement);
+            SetReference(shove, "_body", body);
             PlayerBackpack backpack = player.AddComponent<PlayerBackpack>();
             SpriteRenderer icon = CreateSprite("Held Item", sprite, Color.white, 2);
             icon.transform.SetParent(player.transform, false);

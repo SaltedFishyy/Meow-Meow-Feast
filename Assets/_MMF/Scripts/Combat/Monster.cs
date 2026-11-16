@@ -18,6 +18,8 @@ namespace MMF.Combat
         private int _health;
         private float _flashRemaining;
         private Vector2 _knockback;
+        private Vector2 _shove;
+        private bool _shoved;
         private Vector2 _avoidanceDirection;
         private float _avoidanceRemaining;
         private const float ContactGap = 0.002f;
@@ -42,6 +44,8 @@ namespace MMF.Combat
             _health = _definition.Health;
             _flashRemaining = 0f;
             _knockback = Vector2.zero;
+            _shove = Vector2.zero;
+            _shoved = false;
             _avoidanceRemaining = 0f;
             transform.localScale = Vector3.one * _definition.Size;
             _renderer.color = _definition.Color;
@@ -57,16 +61,20 @@ namespace MMF.Combat
         private void FixedUpdate()
         {
             Vector2 target = _targeting.TargetPosition(_body.position);
-            bool sliding = _knockback.sqrMagnitude <= 0f;
+            bool sliding = !_shoved && _knockback.sqrMagnitude <= 0f;
             Vector2 displacement;
             if (_knockback.sqrMagnitude > 0f)
             {
                 displacement = _knockback;
                 _knockback = Vector2.zero;
             }
+            else if (_shoved)
+                displacement = _shove;
             else
                 displacement = Vector2.ClampMagnitude(target - _body.position,
                     _definition.Speed * Time.fixedDeltaTime);
+            _shoved = false;
+            _shove = Vector2.zero;
             float distance = displacement.magnitude;
             if (distance <= 0f) return;
             Vector2 direction = displacement / distance;
@@ -181,6 +189,14 @@ namespace MMF.Combat
                 if (Vector2.Dot(_hits[i].normal, direction) < 0f)
                     distance = Mathf.Min(distance, Mathf.Max(0f, _hits[i].distance - ContactGap));
             return distance;
+        }
+
+        /// <summary>Queues collision-limited movement for this physics tick without damage or flashing.</summary>
+        public void Shove(Vector2 displacement)
+        {
+            if (_health <= 0 || !isActiveAndEnabled) return;
+            _shove = displacement;
+            _shoved = true;
         }
 
         /// <summary>Applies positive damage and pushes along the supplied attack direction.</summary>

@@ -97,7 +97,7 @@ namespace MMF.Combat
                 }
             }
             _avoidanceRemaining = 0f;
-            _body.MovePosition(_body.position + movement);
+            _body.MovePosition(_body.position + LimitDynamicContact(movement));
         }
 
         private bool TryAvoidMonster(int count, Vector2 direction, float distance)
@@ -126,8 +126,38 @@ namespace MMF.Combat
             float avoidanceDistance = AvoidanceDistance(_avoidanceDirection, avoidanceStep);
             _avoidanceRemaining = Mathf.Max(0f, _avoidanceRemaining - Time.fixedDeltaTime);
             if (avoidanceDistance <= 0f && _avoidanceDirection.sqrMagnitude > 0f) _avoidanceRemaining = 0f;
-            _body.MovePosition(_body.position + _avoidanceDirection * avoidanceDistance);
+            _body.MovePosition(_body.position +
+                LimitDynamicContact(_avoidanceDirection * avoidanceDistance));
             return true;
+        }
+
+        private Vector2 LimitDynamicContact(Vector2 movement)
+        {
+            float distance = movement.magnitude;
+            if (distance <= 0f) return Vector2.zero;
+            Vector2 direction = movement / distance;
+            // Keep moving kinematic bodies outside both colliders' contact skins.
+            float padding = Physics2D.defaultContactOffset * 2f + ContactGap;
+            int count = Physics2D.BoxCast(_collider.bounds.center,
+                (Vector2)_collider.bounds.size + Vector2.one * (padding * 2f),
+                _body.rotation, direction, _filter, _hits, distance + ContactGap);
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit2D hit = _hits[i];
+                if (hit.rigidbody == null || hit.rigidbody.bodyType != RigidbodyType2D.Dynamic) continue;
+                if (hit.distance <= 0f)
+                {
+                    // A player can enter the padding: still allow the monster to move away.
+                    ColliderDistance2D separation = _collider.Distance(hit.collider);
+                    Vector2 away = separation.pointA - separation.pointB;
+                    if (separation.isOverlapped) away = -away;
+                    if (!separation.isValid || Vector2.Dot(direction, away) <= 0f)
+                        distance = 0f;
+                }
+                else if (Vector2.Dot(hit.normal, direction) < 0f)
+                    distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - ContactGap));
+            }
+            return direction * distance;
         }
 
         private bool IsBlockedByMonster(int count, Vector2 direction, float distance, out Monster blocker)

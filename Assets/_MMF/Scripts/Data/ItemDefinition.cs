@@ -9,6 +9,8 @@ namespace MMF.Data
         [SerializeField] private string _displayName = "";
         [SerializeField] private Color _color = Color.white;
         [SerializeField] private ItemDefinition _fryingResult = null;
+        [SerializeField] private bool _neverExpiresOnGround = false;
+        public bool NeverExpiresOnGround => _neverExpiresOnGround;
         public ItemDefinition FryingResult => _fryingResult;
         public string Id => _id;
         public string DisplayName => _displayName;

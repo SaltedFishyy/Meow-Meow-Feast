@@ -9,6 +9,7 @@ namespace MMF.Player
     {
         [SerializeField, Min(1)] private int _slotCount = 5;
         [SerializeField, Min(1)] private int _stackLimit = 3;
+        [SerializeField] private List<ItemDefinition> _startingItems = new List<ItemDefinition>();
         [SerializeField, Min(0f)] private float _pickupRadius = 0.5f;
         [SerializeField, Min(0f)] private float _dropPickupDelay = 2f;
         [SerializeField, Min(0f)] private float _worldLifetime = 60f;
@@ -29,6 +30,7 @@ namespace MMF.Player
         {
             Model = new BackpackModel(_slotCount, _stackLimit);
             Model.ContentsChanged += OnContentsChanged; Model.SelectionChanged += OnSelectionChanged;
+            foreach (ItemDefinition item in _startingItems) TryAdd(item);
             RefreshIcon();
         }
         public ItemDefinition ItemAt(int slot)
@@ -77,7 +79,8 @@ namespace MMF.Player
             GameObject drop = new GameObject("Dropped " + item.name);
             drop.transform.position = transform.position;
             drop.AddComponent<SpriteRenderer>().sortingOrder = 1;
-            drop.AddComponent<WorldItem>().Initialize(item, _itemSprite, _dropPickupDelay, _worldLifetime, _worldItemSize);
+            float lifetime = item.NeverExpiresOnGround ? float.PositiveInfinity : _worldLifetime;
+            drop.AddComponent<WorldItem>().Initialize(item, _itemSprite, _dropPickupDelay, lifetime, _worldItemSize);
         }
         private void OnContentsChanged() { RefreshIcon(); ContentsChanged?.Invoke(); }
         private void OnSelectionChanged() { RefreshIcon(); SelectionChanged?.Invoke(); }

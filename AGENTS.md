@@ -64,6 +64,13 @@ Unity YAML (`.unity`, `.prefab`, `.asset`) is fragile to hand-edit. Instead:
 - Large refactors are never your call; if one seems necessary, describe it under "疑问" and stop.
 - **Refactor tasks** (task title says 整理 / refactor): restructure only. **No new features and no behavior change** — the game must play exactly as before. Keep existing tests passing; add tests if they help prove behavior is unchanged.
 
+## Tunable gameplay values (数值)
+
+- Every **gameplay value** (speeds, durations, distances, damage, health, chances, counts…) lives in a **ScriptableObject tuning asset** under `Assets/_MMF/Data/`, never as a field on a scene component and never hard-coded. Components hold a reference to the asset and read the value when they use it, so edits made during Play take effect immediately (values only read once at startup must be documented as "next Play").
+- Every tuning asset type must show up in the designer window `MMF → 数值` automatically (follow whatever mechanism the window uses, e.g. its marker attribute). Adding a new gameplay value means adding it to a tuning asset — nothing else.
+- Not tuning values: physics/technical constants (contact gaps, tolerances), UI layout pixels, colours and icon offsets. These may stay as constants or component fields.
+- Editor generators must not overwrite tuning assets that already exist (the designer's edits are saved there); only create them with defaults when missing.
+
 ## No dead code (keep the project clean)
 
 - **Delete code your change makes unused**: scripts it replaces (together with their `.meta`), methods / properties / fields / events nobody calls or subscribes to, commented-out code, unused `using`s, empty folders, obsolete logic in editor generators.

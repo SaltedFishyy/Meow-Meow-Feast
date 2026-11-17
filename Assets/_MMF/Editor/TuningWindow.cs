@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using MMF.Data;
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace MMF.Editor
@@ -19,6 +20,8 @@ namespace MMF.Editor
         }
 
         private readonly List<Group> _groups = new List<Group>();
+        private readonly Dictionary<ScriptableObject, SerializedObject> _serializedAssets = new Dictionary<ScriptableObject, SerializedObject>();
+        private readonly Dictionary<string, ReorderableList> _lists = new Dictionary<string, ReorderableList>();
         private Vector2 _scroll;
 
         [MenuItem("MMF/数值")]
@@ -36,6 +39,10 @@ namespace MMF.Editor
         private void OnDisable()
         {
             Undo.undoRedoPerformed -= OnUndoRedo;
+            _lists.Clear();
+            foreach (var serialized in _serializedAssets.Values)
+                serialized.Dispose();
+            _serializedAssets.Clear();
         }
 
         private void OnProjectChange()
@@ -103,11 +110,15 @@ namespace MMF.Editor
             EditorGUILayout.EndScrollView();
         }
 
-        private static void DrawAsset(ScriptableObject asset)
+        private void DrawAsset(ScriptableObject asset)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField(asset.name, EditorStyles.boldLabel);
-            using (var serialized = new SerializedObject(asset))
+            if (!_serializedAssets.TryGetValue(asset, out var serialized))
+            {
+                serialized = new SerializedObject(asset);
+                _serializedAssets.Add(asset, serialized);
+            }
             {
                 serialized.Update();
                 var property = serialized.GetIterator();
@@ -118,11 +129,15 @@ namespace MMF.Editor
                     if (property.propertyPath == "m_Script")
                         continue;
                     var field = FindField(asset.GetType(), property.name);
-                    var label = field?.GetCustomAttribute<TuningLabelAttribute>()?.Label
-                        ?? property.displayName;
-                    var tooltip = field?.GetCustomAttribute<TooltipAttribute>()?.tooltip
-                        ?? property.tooltip;
-                    EditorGUILayout.PropertyField(property, new GUIContent(label, tooltip), true);
+                    if (property.propertyType == SerializedPropertyType.Generic || property.isArray
+                        && property.propertyType != SerializedPropertyType.String)
+                    {
+                        var height = GetFieldHeight(property, field?.FieldType);
+                        DrawField(EditorGUILayout.GetControlRect(false, height), property, field,
+                            field?.FieldType);
+                    }
+                    else
+                        EditorGUILayout.PropertyField(property, GetLabel(property, field), true);
                 }
                 if (serialized.ApplyModifiedProperties())
                     Save(asset);
@@ -132,6 +147,114 @@ namespace MMF.Editor
                 "确定恢复「" + asset.name + "」的默认数值？物体引用和列表保持不变。", "恢复", "取消"))
                 RestoreDefaults(asset);
             EditorGUILayout.EndVertical();
+        }
+
+        private static GUIContent GetLabel(SerializedProperty property, FieldInfo field)
+        {
+            return new GUIContent(field?.GetCustomAttribute<TuningLabelAttribute>()?.Label
+                ?? property.displayName, field?.GetCustomAttribute<TooltipAttribute>()?.tooltip
+                ?? property.tooltip);
+        }
+
+        private ReorderableList GetList(SerializedProperty property, Type type)
+        {
+            var key = property.serializedObject.targetObject.GetEntityId() + ":" + property.propertyPath;
+            if (!_lists.TryGetValue(key, out var list))
+            {
+                list = new ReorderableList(property.serializedObject, property.Copy(), true, false, true, true);
+                _lists.Add(key, list);
+                var elementType = type?.IsArray == true ? type.GetElementType()
+                    : type?.IsGenericType == true ? type.GetGenericArguments()[0] : null;
+                list.elementHeightCallback = index => GetFieldHeight(
+                    list.serializedProperty.GetArrayElementAtIndex(index), elementType)
+                    + EditorGUIUtility.standardVerticalSpacing;
+                list.drawElementCallback = (rect, index, active, focused) =>
+                {
+                    rect.height = GetFieldHeight(
+                        list.serializedProperty.GetArrayElementAtIndex(index), elementType);
+                    DrawField(rect, list.serializedProperty.GetArrayElementAtIndex(index), null, elementType,
+                        new GUIContent("元素 " + index));
+                };
+            }
+            list.serializedProperty = property.Copy();
+            return list;
+        }
+
+        private float GetFieldHeight(SerializedProperty property, Type type)
+        {
+            if (property.isArray && property.propertyType != SerializedPropertyType.String)
+                return EditorGUIUtility.singleLineHeight + (property.isExpanded
+                    ? EditorGUIUtility.standardVerticalSpacing + GetList(property, type).GetHeight() : 0f);
+            if (property.propertyType != SerializedPropertyType.Generic)
+                return EditorGUI.GetPropertyHeight(property, true);
+            var height = EditorGUIUtility.singleLineHeight;
+            if (!property.isExpanded)
+                return height;
+            using (var child = property.Copy())
+            {
+                var end = child.GetEndProperty();
+                if (child.NextVisible(true))
+                {
+                    do
+                    {
+                        if (SerializedProperty.EqualContents(child, end))
+                            break;
+                        var field = FindField(type, child.name);
+                        height += EditorGUIUtility.standardVerticalSpacing + GetFieldHeight(child, field?.FieldType);
+                    }
+                    while (child.NextVisible(false));
+                }
+            }
+            return height;
+        }
+
+        private void DrawField(Rect rect, SerializedProperty property, FieldInfo field, Type type,
+            GUIContent label = null)
+        {
+            label = label ?? GetLabel(property, field);
+            var isList = property.isArray && property.propertyType != SerializedPropertyType.String;
+            if (!isList && property.propertyType != SerializedPropertyType.Generic)
+            {
+                EditorGUI.PropertyField(rect, property, label, true);
+                return;
+            }
+            var line = new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight);
+            if (isList)
+                line.width -= 52f;
+            property.isExpanded = EditorGUI.Foldout(line, property.isExpanded, label, true);
+            if (isList)
+            {
+                var sizeRect = new Rect(rect.xMax - 48f, rect.y, 48f, line.height);
+                EditorGUI.PropertyField(sizeRect, property.FindPropertyRelative("Array.size"), GUIContent.none);
+            }
+            if (!property.isExpanded)
+                return;
+            line.y += line.height + EditorGUIUtility.standardVerticalSpacing;
+            if (isList)
+            {
+                GetList(property, type).DoList(new Rect(rect.x, line.y, rect.width,
+                    rect.height - line.height - EditorGUIUtility.standardVerticalSpacing));
+                return;
+            }
+            EditorGUI.indentLevel++;
+            using (var child = property.Copy())
+            {
+                var end = child.GetEndProperty();
+                if (child.NextVisible(true))
+                {
+                    do
+                    {
+                        if (SerializedProperty.EqualContents(child, end))
+                            break;
+                        var childField = FindField(type, child.name);
+                        line.height = GetFieldHeight(child, childField?.FieldType);
+                        DrawField(line, child, childField, childField?.FieldType);
+                        line.y += line.height + EditorGUIUtility.standardVerticalSpacing;
+                    }
+                    while (child.NextVisible(false));
+                }
+            }
+            EditorGUI.indentLevel--;
         }
 
         private static FieldInfo FindField(Type type, string name)

@@ -19,3 +19,7 @@ MonoBehaviour:
   _flashDuration: 0.1
   _knockbackDistance: 0.3
   _color: {r: 0.6, g: 0.25, b: 0.8, a: 1}
+  _chaseStartDistance: 8
+  _chaseStopDistance: 10
+  _leftEndProbability: 0.7
+  _avoidanceDuration: 0.5

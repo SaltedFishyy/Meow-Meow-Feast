@@ -16,3 +16,4 @@ MonoBehaviour:
   _angle: 90
   _damage: 1
   _cooldown: 0.4
+  _swingFlashDuration: 0.2

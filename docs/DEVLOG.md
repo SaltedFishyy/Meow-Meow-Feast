@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-11-16 · T008a · 右键蓄力 + 箭头（先不丢）
+
+**做了什么**（Codex 编写，Claude 审查，一次通过）
+- `ThrowTuning`（新，数值窗口"丢东西"组）：蓄满要几秒 1、没蓄力时丢多远 1、蓄满时丢多远 6（🟡 暂定）。
+- `PlayerThrow`（新）：管蓄力规则，有 `TryStartCharge` / `Release` / `Cancel` / `SetAim`，并提供 `Distance`、`Direction`。
+  - 不能蓄力：选中格是空的，或者 `PlayerInteractor.CanDrop` 为 false（举着锅台、正在煎）。
+  - 这一步的 `Release` 只结束蓄力，不丢东西。
+- `ThrowArrow`（新，玩家的子物体）：用网格画一条线加一个箭头尖，半透明白色。只在长度或外观变了时更新网格，不分配新数组。
+- `MMFControls.inputactions`：新增 `Throw` 动作，绑定鼠标右键。
+- `PlayerInputReader`：
+  - 右键按下开始蓄力，松开调用 `Release`。
+  - 蓄力时每帧把鼠标的世界坐标传进去。
+  - 左键回调最前面加了一步：正在蓄力就只取消蓄力，然后 return。
+  - 计算鼠标世界坐标的代码抽成了 `TryGetMouseWorldPosition`，和攻击共用。
+- 生成器：给玩家加 `PlayerThrow` 和箭头子物体，加载 / 创建 `ThrowTuning.asset`（已经存在就不覆盖）。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；场景生成 3 次，96 个引用都不为空，`ThrowTuning.asset` 只有一个；改值后重新生成，值不被覆盖；93 个测试全部通过。
+- Play，直接调用组件的方法测：
+  - 每 0.2 秒记录一次距离：1.22 → 2 → 3 → 4 → 5 → 6，1 秒后一直是 6。箭头网格长度 6，箭头朝向跟着鼠标方向。
+  - 松开以后箭头消失，背包里的东西没变。
+  - 空格子、举着锅台时，蓄力开始不了。
+- 模拟鼠标测不了：Unity 窗口不在最前面时，输入设置（`ResetAndDisableNonBackgroundDevices`）会停掉鼠标，模拟的点击到不了游戏。右键接线和"左键先取消"是看代码确认的，要用户手动试玩确认。
+- Console 没有报错。
+
+---
+
 ## 2026-11-16 · T007 · 进了餐车镜头固定在车中间
 
 **做了什么**（Codex 编写，Claude 审查，一次通过）

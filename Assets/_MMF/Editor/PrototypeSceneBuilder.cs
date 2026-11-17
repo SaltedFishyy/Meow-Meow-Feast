@@ -50,7 +50,7 @@ namespace MMF.Editor
                 Debug.LogError("Cannot build prototype: MMFControls/Gameplay/Move is missing.");
                 return;
             }
-            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Interact", "Cancel", "Lift", "FryW", "FryA", "FryS", "FryD" };
+            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Interact", "Cancel", "Lift", "Throw", "FryW", "FryA", "FryS", "FryD" };
             foreach (string action in requiredActions)
                 if (controls.FindAction("Gameplay/" + action) == null)
                 {
@@ -307,7 +307,22 @@ namespace MMF.Editor
             SetReference(backpack, "_itemSprite", sprite);
             SetReference(backpack, "_heldIcon", icon);
             SetReference(backpack, "_failureSprite", LoadMark(false));
-            player.AddComponent<PlayerInteractor>();
+            PlayerInteractor interactor = player.AddComponent<PlayerInteractor>();
+            PlayerThrow playerThrow = player.AddComponent<PlayerThrow>();
+            SetReference(playerThrow, "_tuning", LoadThrowTuning());
+            SetReference(playerThrow, "_backpack", backpack);
+            SetReference(playerThrow, "_interactor", interactor);
+            GameObject arrow = new GameObject("Throw Arrow");
+            arrow.transform.SetParent(player.transform, false);
+            MeshFilter arrowFilter = arrow.AddComponent<MeshFilter>();
+            MeshRenderer arrowRenderer = arrow.AddComponent<MeshRenderer>();
+            arrowRenderer.sharedMaterial = AssetDatabase.GetBuiltinExtraResource<Material>("Sprites-Default.mat");
+            arrowRenderer.sortingOrder = 5;
+            arrowRenderer.enabled = false;
+            ThrowArrow throwArrow = arrow.AddComponent<ThrowArrow>();
+            SetReference(throwArrow, "_throw", playerThrow);
+            SetReference(throwArrow, "_meshFilter", arrowFilter);
+            SetReference(throwArrow, "_meshRenderer", arrowRenderer);
             PlayerInputReader reader = player.AddComponent<PlayerInputReader>();
             SerializedObject readerData = new SerializedObject(reader);
             readerData.FindProperty("_controls").objectReferenceValue = controls;
@@ -329,6 +344,17 @@ namespace MMF.Editor
             PlayerTuning tuning = AssetDatabase.LoadAssetAtPath<PlayerTuning>(path);
             if (tuning != null) return tuning;
             tuning = ScriptableObject.CreateInstance<PlayerTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
+        }
+
+        private static ThrowTuning LoadThrowTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/ThrowTuning.asset";
+            ThrowTuning tuning = AssetDatabase.LoadAssetAtPath<ThrowTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<ThrowTuning>();
             AssetDatabase.CreateAsset(tuning, path);
             return tuning;
         }

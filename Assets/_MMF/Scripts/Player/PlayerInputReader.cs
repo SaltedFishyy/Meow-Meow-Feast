@@ -17,6 +17,7 @@ namespace MMF.Player
         private PlayerBackpack _backpack;
         private PlayerInteractor _interactor;
         private PlayerAttack _attack;
+        private PlayerThrow _throw;
         private Camera _camera;
         private InputActionMap _gameplay;
 
@@ -26,6 +27,7 @@ namespace MMF.Player
             _backpack = GetComponent<PlayerBackpack>();
             _interactor = GetComponent<PlayerInteractor>();
             _attack = GetComponent<PlayerAttack>();
+            _throw = GetComponent<PlayerThrow>();
             _camera = Camera.main;
             if (_controls == null)
             {
@@ -47,14 +49,14 @@ namespace MMF.Player
             _gameplay.FindAction("Drop", true).performed += context => { if (_interactor == null || _interactor.CanDrop) _backpack?.Drop(); };
             _gameplay.FindAction("Interact", true).performed += context => _interactor?.Interact();
             _gameplay.FindAction("Cancel", true).performed += context => _interactor?.Cancel();
+            _gameplay.FindAction("Throw", true).performed += context => _throw?.TryStartCharge();
+            _gameplay.FindAction("Throw", true).canceled += context => _throw?.Release();
             _gameplay.FindAction("Lift", true).performed += context =>
             {
+                if (_throw != null && _throw.Charging) { _throw.Cancel(); return; }
                 if (_interactor == null || _interactor.Lift()) return;
-                if (Mouse.current == null || _camera == null || _attack == null) return;
-                Vector2 screenPosition = Mouse.current.position.ReadValue();
-                Vector3 worldPosition = _camera.ScreenToWorldPoint(new Vector3(
-                    screenPosition.x, screenPosition.y, transform.position.z - _camera.transform.position.z));
-                _attack.TryAttack(worldPosition);
+                if (_attack != null && TryGetMouseWorldPosition(out Vector2 worldPosition))
+                    _attack.TryAttack(worldPosition);
             };
             foreach (char key in "WASD")
             {
@@ -63,6 +65,22 @@ namespace MMF.Player
             }
             _moveAction.performed += OnMove;
             _moveAction.canceled += OnMove;
+        }
+
+        private void Update()
+        {
+            if (_throw != null && _throw.Charging && TryGetMouseWorldPosition(out Vector2 worldPosition))
+                _throw.SetAim(worldPosition);
+        }
+
+        private bool TryGetMouseWorldPosition(out Vector2 worldPosition)
+        {
+            worldPosition = default;
+            if (Mouse.current == null || _camera == null) return false;
+            Vector2 screenPosition = Mouse.current.position.ReadValue();
+            worldPosition = _camera.ScreenToWorldPoint(new Vector3(
+                screenPosition.x, screenPosition.y, transform.position.z - _camera.transform.position.z));
+            return true;
         }
 
         private void OnEnable()

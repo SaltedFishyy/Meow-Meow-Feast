@@ -7,12 +7,8 @@ namespace MMF.Player
     /// <summary>Connects inventory rules to ground items and the held marker.</summary>
     public sealed class PlayerBackpack : MonoBehaviour
     {
-        [SerializeField, Min(1)] private int _slotCount = 5;
-        [SerializeField, Min(1)] private int _stackLimit = 3;
+        [SerializeField] private BackpackTuning _tuning = null;
         [SerializeField] private List<ItemDefinition> _startingItems = new List<ItemDefinition>();
-        [SerializeField, Min(0f)] private float _pickupRadius = 0.5f;
-        [SerializeField, Min(0f)] private float _dropPickupDelay = 2f;
-        [SerializeField, Min(0f)] private float _worldLifetime = 60f;
         [SerializeField, Min(0.01f)] private float _worldItemSize = 0.4f;
         [SerializeField] private Sprite _itemSprite = null;
         [SerializeField] private SpriteRenderer _heldIcon = null;
@@ -20,7 +16,6 @@ namespace MMF.Player
         [SerializeField] private Vector3 _iconOffset = new Vector3(0f, 0.85f, 0f);
         [SerializeField, Min(0.01f)] private float _iconSize = 0.25f;
         [SerializeField] private Sprite _failureSprite = null;
-        [SerializeField, Min(0f)] private float _failureSeconds = 1f;
         private float _failureUntil;
         private readonly Dictionary<string, ItemDefinition> _definitions = new Dictionary<string, ItemDefinition>();
         public BackpackModel Model { get; private set; }
@@ -28,7 +23,7 @@ namespace MMF.Player
         public event Action SelectionChanged;
         private void Awake()
         {
-            Model = new BackpackModel(_slotCount, _stackLimit);
+            Model = new BackpackModel(_tuning.SlotCount, _tuning.StackLimit);
             Model.ContentsChanged += OnContentsChanged; Model.SelectionChanged += OnSelectionChanged;
             foreach (ItemDefinition item in _startingItems) TryAdd(item);
             RefreshIcon();
@@ -51,7 +46,7 @@ namespace MMF.Player
             {
                 WorldItem world = items[i];
                 if (!world.CanPickUp || world.Item == null ||
-                    ((Vector2)(world.transform.position - transform.position)).sqrMagnitude > _pickupRadius * _pickupRadius) continue;
+                    ((Vector2)(world.transform.position - transform.position)).sqrMagnitude > _tuning.PickupRadius * _tuning.PickupRadius) continue;
                 if (!TryAdd(world.Item)) continue;
                 world.gameObject.SetActive(false); Destroy(world.gameObject);
             }
@@ -72,15 +67,15 @@ namespace MMF.Player
         /// <summary>Removes one item from the selected slot.</summary>
         public void TakeSelected() { Model.TryDrop(out _); }
         /// <summary>Temporarily replaces the held marker with a red failure mark.</summary>
-        public void ShowFailure() { _failureUntil = Time.time + _failureSeconds; RefreshIcon(); }
+        public void ShowFailure() { _failureUntil = Time.time + _tuning.FailureSeconds; RefreshIcon(); }
         /// <summary>Creates a ground item with the same pickup delay as Q.</summary>
         public void DropItem(ItemDefinition item)
         {
             GameObject drop = new GameObject("Dropped " + item.name);
             drop.transform.position = transform.position;
             drop.AddComponent<SpriteRenderer>().sortingOrder = 1;
-            float lifetime = item.NeverExpiresOnGround ? float.PositiveInfinity : _worldLifetime;
-            drop.AddComponent<WorldItem>().Initialize(item, _itemSprite, _dropPickupDelay, lifetime, _worldItemSize);
+            float lifetime = item.NeverExpiresOnGround ? float.PositiveInfinity : _tuning.WorldLifetime;
+            drop.AddComponent<WorldItem>().Initialize(item, _itemSprite, _tuning.DropPickupDelay, lifetime, _worldItemSize);
         }
         private void OnContentsChanged() { RefreshIcon(); ContentsChanged?.Invoke(); }
         private void OnSelectionChanged() { RefreshIcon(); SelectionChanged?.Invoke(); }

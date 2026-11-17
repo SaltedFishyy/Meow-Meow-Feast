@@ -12,9 +12,8 @@ namespace MMF.Combat
     {
         [SerializeField] private DropTable _dropTable = null;
         [SerializeField] private Sprite _sprite = null;
-        [SerializeField, Min(0f)] private float _scatterRadius = 0.5f;
+        [SerializeField] private BackpackTuning _tuning = null;
         [SerializeField, Min(0.01f)] private float _size = 0.4f;
-        [SerializeField, Min(0f)] private float _lifetime = 60f;
         private readonly List<ItemDefinition> _results = new List<ItemDefinition>();
         private static readonly Func<float> Random01 = () => UnityEngine.Random.value;
         private Monster _monster;
@@ -40,11 +39,11 @@ namespace MMF.Combat
             {
                 GameObject dropped = new GameObject(item.name);
                 dropped.transform.position = monster.transform.position +
-                    (Vector3)(UnityEngine.Random.insideUnitCircle * _scatterRadius);
+                    (Vector3)(UnityEngine.Random.insideUnitCircle * _dropTable.ScatterRadius);
                 SpriteRenderer renderer = dropped.AddComponent<SpriteRenderer>();
                 renderer.sortingOrder = 1;
                 WorldItem world = dropped.AddComponent<WorldItem>();
-                world.Initialize(item, _sprite, 0f, _lifetime, _size);
+                world.Initialize(item, _sprite, 0f, _tuning.WorldLifetime, _size);
             }
         }
     }

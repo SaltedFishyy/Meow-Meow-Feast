@@ -155,6 +155,7 @@ namespace MMF.Editor
                 AssetDatabase.CreateAsset(definition, path);
             }
             DropTable drops = LoadMonsterDrops();
+            BackpackTuning backpackTuning = LoadBackpackTuning();
             MonsterSpawner spawner = new GameObject("Monster Spawner").AddComponent<MonsterSpawner>();
             SetReference(spawner, "_definition", definition);
             SerializedObject truckData = new SerializedObject(truck);
@@ -204,11 +205,10 @@ namespace MMF.Editor
                 SetReference(monster, "_definition", definition);
                 MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
                 SetReference(dropsComponent, "_dropTable", drops);
+                SetReference(dropsComponent, "_tuning", backpackTuning);
                 SetReference(dropsComponent, "_sprite", sprite);
                 SerializedObject dropsData = new SerializedObject(dropsComponent);
-                dropsData.FindProperty("_scatterRadius").floatValue = 0.5f;
                 dropsData.FindProperty("_size").floatValue = 0.4f;
-                dropsData.FindProperty("_lifetime").floatValue = 60f;
                 dropsData.ApplyModifiedPropertiesWithoutUndo();
                 points.GetArrayElementAtIndex(i).objectReferenceValue = point;
                 monsters.GetArrayElementAtIndex(i).objectReferenceValue = monster;
@@ -297,6 +297,7 @@ namespace MMF.Editor
             SetReference(shove, "_movement", movement);
             SetReference(shove, "_body", body);
             PlayerBackpack backpack = player.AddComponent<PlayerBackpack>();
+            SetReference(backpack, "_tuning", LoadBackpackTuning());
             SpriteRenderer icon = CreateSprite("Held Item", sprite, Color.white, 2);
             icon.transform.SetParent(player.transform, false);
             icon.transform.localPosition = new Vector3(0f, 0.85f, 0f);
@@ -327,6 +328,17 @@ namespace MMF.Editor
             PlayerTuning tuning = AssetDatabase.LoadAssetAtPath<PlayerTuning>(path);
             if (tuning != null) return tuning;
             tuning = ScriptableObject.CreateInstance<PlayerTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
+        }
+
+        private static BackpackTuning LoadBackpackTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/BackpackTuning.asset";
+            BackpackTuning tuning = AssetDatabase.LoadAssetAtPath<BackpackTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<BackpackTuning>();
             AssetDatabase.CreateAsset(tuning, path);
             return tuning;
         }

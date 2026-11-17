@@ -18,6 +18,10 @@ namespace MMF.Data
         }
 
         [SerializeField] private List<Entry> _entries = new List<Entry>();
+        [SerializeField, Min(0f)] private float _scatterRadius = 0.5f;
+
+        /// <summary>Maximum distance from the monster at which items spawn.</summary>
+        public float ScatterRadius => _scatterRadius;
 
         /// <summary>Appends successful drops, drawing once for every entry.</summary>
         public void Roll(Func<float> random01, List<ItemDefinition> results)

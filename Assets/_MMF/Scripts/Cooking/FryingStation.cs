@@ -8,10 +8,7 @@ namespace MMF.Cooking
     {
         [SerializeField] private ItemDefinition _burntItem = null;
         [SerializeField] private SpriteRenderer _food = null;
-        [SerializeField, Min(0f)] private float _interactionDistance = 1f;
-        [SerializeField, Min(1)] private int _itemsPerBatch = 1;
-        [SerializeField, Min(1)] private int _lettersPerRound = 4;
-        [SerializeField, Min(0.01f)] private float _roundSeconds = 10f;
+        [SerializeField] private CookingTuning _tuning = null;
         private BoxCollider2D _collider;
         private BoxCollider2D Collider
         {
@@ -23,7 +20,7 @@ namespace MMF.Cooking
         }
         public ItemDefinition Item { get; private set; }
         public int Count { get; private set; }
-        public int ItemsPerBatch => _itemsPerBatch;
+        public int ItemsPerBatch => _tuning.ItemsPerBatch;
         public ItemDefinition BurntItem => _burntItem;
         public Vector2 Size => Vector2.Scale(Collider.size, transform.lossyScale);
         private void Awake() { _collider = GetComponent<BoxCollider2D>(); }
@@ -35,10 +32,10 @@ namespace MMF.Cooking
             Vector2 half = Collider.size * 0.5f;
             Vector2 closest = new Vector2(Mathf.Clamp(local.x, -half.x, half.x), Mathf.Clamp(local.y, -half.y, half.y));
             Vector2 world = transform.TransformPoint(closest + Collider.offset);
-            return (player - world).sqrMagnitude <= _interactionDistance * _interactionDistance;
+            return (player - world).sqrMagnitude <= _tuning.InteractionDistance * _tuning.InteractionDistance;
         }
         /// <summary>Creates a session using this station tuning.</summary>
-        public FryingSequence CreateSequence() => new FryingSequence(_lettersPerRound, _roundSeconds, new System.Random());
+        public FryingSequence CreateSequence() => new FryingSequence(_tuning.LettersPerRound, _tuning.RoundSeconds, new System.Random());
         /// <summary>Stores a batch and refreshes its visible marker.</summary>
         public void SetContents(ItemDefinition item, int count)
         {

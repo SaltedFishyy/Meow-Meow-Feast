@@ -105,6 +105,7 @@ namespace MMF.Editor
             SetReference(flash, "_meshRenderer", flashRenderer);
             CreateMonsters(sprite, truck, backpack);
             FollowCamera follow = camera.gameObject.AddComponent<FollowCamera>();
+            SetReference(follow, "_tuning", LoadCameraTuning());
             SetReference(follow, "_target", backpack.transform);
             SetReference(follow, "_map", arena);
             SetReference(follow, "_truck", truck);
@@ -343,6 +344,28 @@ namespace MMF.Editor
             return tuning;
         }
 
+        private static CookingTuning LoadCookingTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/CookingTuning.asset";
+            CookingTuning tuning = AssetDatabase.LoadAssetAtPath<CookingTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<CookingTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
+        }
+
+        private static CameraTuning LoadCameraTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/CameraTuning.asset";
+            CameraTuning tuning = AssetDatabase.LoadAssetAtPath<CameraTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<CameraTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
+        }
+
         private static WeaponDefinition LoadFryingPanWeapon()
         {
             EnsureFolder(Root + "/Data/Weapons");
@@ -440,11 +463,13 @@ namespace MMF.Editor
             stationBody.transform.position = (Vector3)truck.TopLeftCell(Vector2.one);
             stationBody.gameObject.AddComponent<BoxCollider2D>().size = Vector2.one;
             FryingStation station = stationBody.gameObject.AddComponent<FryingStation>();
+            SetReference(station, "_tuning", LoadCookingTuning());
             SpriteRenderer food = CreateSprite("Pan Contents", sprite, Color.white, 4);
             food.transform.SetParent(station.transform, false); food.transform.localScale = Vector3.one * 0.4f;
             food.enabled = false; SetReference(station, "_food", food); SetReference(station, "_burntItem", burnt);
 
             FryingPanel panel = canvas.gameObject.AddComponent<FryingPanel>();
+            SetReference(panel, "_tuning", LoadCookingTuning());
             RectTransform view = UiRect("Frying View", canvas, Vector2.zero, Vector2.zero);
             view.anchorMin = new Vector2(2f / 3f, 0f); view.anchorMax = Vector2.one;
             view.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 1f);

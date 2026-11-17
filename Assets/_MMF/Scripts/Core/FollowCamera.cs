@@ -1,3 +1,4 @@
+using MMF.Data;
 using MMF.Truck;
 using UnityEngine;
 
@@ -10,24 +11,21 @@ namespace MMF.Core
         [SerializeField] private Transform _target = null;
         [SerializeField] private MapBounds _map = null;
         [SerializeField] private TruckArea _truck = null;
-        [SerializeField, Min(0.01f)] private float _insideSize = 5f;
-        [SerializeField, Min(0.01f)] private float _outsideSize = 7f;
-        [SerializeField, Min(0f)] private float _zoomDuration = 0.5f;
-        [SerializeField, Min(0f)] private float _followTime = 0.2f;
+        [SerializeField] private CameraTuning _tuning = null;
         private Camera _camera;
         private Vector3 _velocity;
         private bool _inside;
         private float _zoomStart;
         private float _zoomElapsed;
         /// <summary>Outdoor half-height used for UI clearance.</summary>
-        public float OutsideSize => _outsideSize;
+        public float OutsideSize => _tuning.OutsideSize;
         private void Awake() { _camera = GetComponent<Camera>(); }
         private void Start()
         {
             _inside = _truck.Contains(_target.position);
-            _camera.orthographicSize = _inside ? _insideSize : _outsideSize;
+            _camera.orthographicSize = _inside ? _tuning.InsideSize : _tuning.OutsideSize;
             _zoomStart = _camera.orthographicSize;
-            _zoomElapsed = _zoomDuration;
+            _zoomElapsed = _tuning.ZoomDuration;
             ApplyBounds(_target.position);
         }
         private void LateUpdate()
@@ -40,11 +38,11 @@ namespace MMF.Core
                 _zoomElapsed = 0f;
             }
             _zoomElapsed += Time.deltaTime;
-            float t = _zoomDuration <= 0f ? 1f : Mathf.Clamp01(_zoomElapsed / _zoomDuration);
-            _camera.orthographicSize = Mathf.Lerp(_zoomStart, _inside ? _insideSize : _outsideSize, Mathf.SmoothStep(0f, 1f, t));
+            float t = _tuning.ZoomDuration <= 0f ? 1f : Mathf.Clamp01(_zoomElapsed / _tuning.ZoomDuration);
+            _camera.orthographicSize = Mathf.Lerp(_zoomStart, _inside ? _tuning.InsideSize : _tuning.OutsideSize, Mathf.SmoothStep(0f, 1f, t));
             Vector3 target = _target.position;
             target.z = transform.position.z;
-            Vector3 position = _followTime <= 0f ? target : Vector3.SmoothDamp(transform.position, target, ref _velocity, _followTime);
+            Vector3 position = _tuning.FollowTime <= 0f ? target : Vector3.SmoothDamp(transform.position, target, ref _velocity, _tuning.FollowTime);
             ApplyBounds(position);
         }
         private void ApplyBounds(Vector3 position)

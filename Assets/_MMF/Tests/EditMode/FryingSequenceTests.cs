@@ -15,16 +15,24 @@ namespace MMF.Tests
         public void StationRangeUsesFootprintEvenWithDisabledCollider(float x, float y)
         {
             var go = new GameObject("Range test");
+            var cookingTuning = ScriptableObject.CreateInstance<CookingTuning>();
             try
             {
                 var station = go.AddComponent<FryingStation>();
+                var stationData = new SerializedObject(station);
+                stationData.FindProperty("_tuning").objectReferenceValue = cookingTuning;
+                stationData.ApplyModifiedPropertiesWithoutUndo();
                 Assert.IsTrue(station.InRange(new Vector2(x, y)));
                 Assert.IsFalse(station.InRange(new Vector2(x, y) * 2f));
                 station.SetCarried(true);
                 Assert.IsTrue(station.InRange(new Vector2(x, y)));
                 Assert.IsFalse(station.InRange(new Vector2(x, y) * 2f));
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(cookingTuning);
+            }
         }
         [TestCase(-5f, 2.5f, true)] [TestCase(5f, -2.5f, true)]
         [TestCase(-5f, -2.5f, true)] [TestCase(5f, 2.5f, true)]
@@ -61,6 +69,7 @@ namespace MMF.Tests
             var stationObject = new GameObject("Station test");
             var wall = new GameObject("Wall test");
             var tuning = ScriptableObject.CreateInstance<PlayerTuning>();
+            var cookingTuning = ScriptableObject.CreateInstance<CookingTuning>();
             try
             {
                 var truck = truckObject.AddComponent<TruckArea>();
@@ -74,6 +83,9 @@ namespace MMF.Tests
                 movement.SetMoveDirection(Vector2.right);
                 stationObject.transform.position = new Vector2(0.8f, 0.5f);
                 var station = stationObject.AddComponent<FryingStation>();
+                var stationData = new SerializedObject(station);
+                stationData.FindProperty("_tuning").objectReferenceValue = cookingTuning;
+                stationData.ApplyModifiedPropertiesWithoutUndo();
                 var data = new SerializedObject(interactor);
                 data.FindProperty("_station").objectReferenceValue = station;
                 data.FindProperty("_truck").objectReferenceValue = truck;
@@ -96,6 +108,7 @@ namespace MMF.Tests
                 UnityEngine.Object.DestroyImmediate(truckObject);
                 UnityEngine.Object.DestroyImmediate(wall);
                 UnityEngine.Object.DestroyImmediate(tuning);
+                UnityEngine.Object.DestroyImmediate(cookingTuning);
             }
         }
         private static FryingSequence Create()

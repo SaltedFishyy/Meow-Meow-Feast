@@ -17,7 +17,7 @@ namespace MMF.UI
         [SerializeField] private Text _status = null;
         [SerializeField] private Sprite _panSprite = null;
         [SerializeField, Range(0.1f, 1f)] private float _widthFraction = 0.333333f;
-        [SerializeField, Min(0.01f)] private float _flipSeconds = 0.4f;
+        [SerializeField] private CookingTuning _tuning = null;
         private FryingSequence _sequence;
         private Color _cookedColor;
         private float _flipElapsed;
@@ -56,7 +56,7 @@ namespace MMF.UI
             if (_sequence.Flipping)
             {
                 _flipElapsed += Time.deltaTime;
-                float phase = Mathf.Clamp01(_flipElapsed / _flipSeconds);
+                float phase = Mathf.Clamp01(_flipElapsed / _tuning.FlipSeconds);
                 _food.transform.localScale = new Vector3(1f, Mathf.Abs(1f - 2f * phase), 1f);
                 if (phase >= 0.5f) _food.color = _cookedColor;
                 if (phase >= 1f)

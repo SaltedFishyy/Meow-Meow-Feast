@@ -3,13 +3,14 @@ using UnityEngine;
 namespace MMF.Data
 {
     /// <summary>Shared player movement and monster shove tuning, read live by components.</summary>
+    [TuningGroup("玩家", 1)]
     [CreateAssetMenu(menuName = "MMF/Player Tuning")]
     public sealed class PlayerTuning : ScriptableObject
     {
-        [SerializeField, Min(0f)] private float _maxSpeed = 5f;
-        [SerializeField, Min(0f)] private float _accelerationTime = 0.1f;
-        [SerializeField, Min(0f)] private float _decelerationTime = 0.1f;
-        [SerializeField, Range(0f, 1f)] private float _speedRatio = 0.5f;
+        [SerializeField, TuningLabel("最大速度"), Min(0f)] private float _maxSpeed = 5f;
+        [SerializeField, TuningLabel("加速时间（秒）"), Min(0f)] private float _accelerationTime = 0.1f;
+        [SerializeField, TuningLabel("减速时间（秒）"), Min(0f)] private float _decelerationTime = 0.1f;
+        [SerializeField, TuningLabel("挤怪物时的速度比例"), Range(0f, 1f)] private float _speedRatio = 0.5f;
 
         /// <summary>Unmodified maximum movement speed.</summary>
         public float MaxSpeed => _maxSpeed;

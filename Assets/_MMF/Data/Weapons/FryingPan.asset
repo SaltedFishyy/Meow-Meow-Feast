@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5303668ed09e744b8d22030c5e843d9, type: 3}
   m_Name: FryingPan
   m_EditorClassIdentifier: MMF.Runtime::MMF.Data.WeaponDefinition
-  _range: 1.5
+  _range: 3
   _angle: 90
   _damage: 1
   _cooldown: 0.4

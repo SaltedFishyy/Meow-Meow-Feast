@@ -1,3 +1,4 @@
+using MMF.Data;
 using UnityEngine;
 
 namespace MMF.Player
@@ -7,9 +8,7 @@ namespace MMF.Player
     [RequireComponent(typeof(Rigidbody2D))]
     public sealed class PlayerMovement : MonoBehaviour
     {
-        [SerializeField, Min(0f)] private float _maxSpeed = 5f;
-        [SerializeField, Min(0f)] private float _accelerationTime = 0.1f;
-        [SerializeField, Min(0f)] private float _decelerationTime = 0.1f;
+        [SerializeField] private PlayerTuning _tuning;
 
         private Rigidbody2D _body;
         private Rigidbody2D Body
@@ -28,7 +27,7 @@ namespace MMF.Player
         public Vector2 MoveDirection => _blocked ? Vector2.zero : _moveDirection;
 
         /// <summary>Unmodified maximum movement speed.</summary>
-        public float MaxSpeed => _maxSpeed;
+        public float MaxSpeed => _tuning.MaxSpeed;
 
         /// <summary>Sets the target speed scale without changing acceleration or input.</summary>
         public void SetSpeedMultiplier(float multiplier)
@@ -64,13 +63,13 @@ namespace MMF.Player
         private void FixedUpdate()
         {
             if (_blocked) { _body.linearVelocity = Vector2.zero; return; }
-            Vector2 targetVelocity = _moveDirection * (_maxSpeed * _speedMultiplier);
+            Vector2 targetVelocity = _moveDirection * (_tuning.MaxSpeed * _speedMultiplier);
             float duration = _moveDirection.sqrMagnitude > 0f
-                ? _accelerationTime : _decelerationTime;
+                ? _tuning.AccelerationTime : _tuning.DecelerationTime;
             _body.linearVelocity = duration <= 0f
                 ? targetVelocity
                 : Vector2.MoveTowards(_body.linearVelocity, targetVelocity,
-                    _maxSpeed / duration * Time.fixedDeltaTime);
+                    _tuning.MaxSpeed / duration * Time.fixedDeltaTime);
         }
 
         private void OnDisable()

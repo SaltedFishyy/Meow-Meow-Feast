@@ -289,8 +289,11 @@ namespace MMF.Editor
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             player.AddComponent<BoxCollider2D>().size = Vector2.one;
+            PlayerTuning tuning = LoadPlayerTuning();
             PlayerMovement movement = player.AddComponent<PlayerMovement>();
+            SetReference(movement, "_tuning", tuning);
             PlayerShove shove = player.AddComponent<PlayerShove>();
+            SetReference(shove, "_tuning", tuning);
             SetReference(shove, "_movement", movement);
             SetReference(shove, "_body", body);
             PlayerBackpack backpack = player.AddComponent<PlayerBackpack>();
@@ -315,6 +318,17 @@ namespace MMF.Editor
             SerializedObject data = new SerializedObject(target);
             data.FindProperty(property).objectReferenceValue = value;
             data.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static PlayerTuning LoadPlayerTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/PlayerTuning.asset";
+            PlayerTuning tuning = AssetDatabase.LoadAssetAtPath<PlayerTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<PlayerTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
         }
 
         private static WeaponDefinition LoadFryingPanWeapon()

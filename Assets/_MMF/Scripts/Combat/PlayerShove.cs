@@ -1,3 +1,4 @@
+using MMF.Data;
 using MMF.Player;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ namespace MMF.Combat
     {
         [SerializeField] private PlayerMovement _movement;
         [SerializeField] private Rigidbody2D _body;
-        [SerializeField, Range(0f, 1f)] private float _speedRatio = 0.5f;
+        [SerializeField] private PlayerTuning _tuning;
         [SerializeField, Min(0f)] private float _detectionDistance = 0.05f;
 
         private readonly RaycastHit2D[] _hits = new RaycastHit2D[32];
@@ -30,7 +31,7 @@ namespace MMF.Combat
             Vector2 intent = _movement.MoveDirection;
             if (intent.sqrMagnitude <= 0f) return;
 
-            Vector2 displacement = intent * (_movement.MaxSpeed * _speedRatio * Time.fixedDeltaTime);
+            Vector2 displacement = intent * (_movement.MaxSpeed * _tuning.SpeedRatio * Time.fixedDeltaTime);
             Vector2 direction = intent.normalized;
             int count = _body.Cast(direction, _filter, _hits,
                 displacement.magnitude + _detectionDistance);
@@ -40,7 +41,7 @@ namespace MMF.Combat
                 if (Vector2.Dot(hit.normal, direction) >= 0f) continue;
                 if (!hit.collider.TryGetComponent<Monster>(out Monster monster)) continue;
                 monster.Shove(displacement);
-                _movement.SetSpeedMultiplier(_speedRatio);
+                _movement.SetSpeedMultiplier(_tuning.SpeedRatio);
             }
         }
 

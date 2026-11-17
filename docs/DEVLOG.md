@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-11-16 · T006a · 整理：玩家数值搬进数值文件
+
+**做了什么**（Codex 编写，Claude 审查，一次通过；整理任务，行为不变）
+- `PlayerTuning`（新 ScriptableObject）：最大速度 5、加速时间 0.1、减速时间 0.1、挤怪物速度比例 0.5，默认值和原来一样。
+- `PlayerMovement`：删掉 3 个数值字段，改成每次用的时候从 `PlayerTuning` 读。`PlayerShove`：`_speedRatio` 也改成从 `PlayerTuning` 读；检测距离是技术数值，留在组件上。
+- 生成器：创建 / 复用 `Data/Tuning/PlayerTuning.asset`，已经存在就不覆盖。
+- `FryingSequenceTests`：测试里给 `PlayerMovement` 填了一个临时的 `PlayerTuning`。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；场景生成 3 次，136 个引用都不为空；93 个测试全部通过；Console 没有报错。
+- 把最大速度改成 7 再生成场景：值还是 7，资源只有 1 个（生成器没有覆盖）。测完改回 5。
+- Play：
+  - 正常速度 5。
+  - Play 中把数值文件改成 8：马上变成 8，不用重开 Play。测完改回 5。
+  - 挤怪物时速度 2.5，和原来一样。
+
+---
+
 ## 2026-11-15 · T005d2 · 玩家能慢慢挤开怪物
 
 **做了什么**（Codex 编写，Claude 审查，一次通过）

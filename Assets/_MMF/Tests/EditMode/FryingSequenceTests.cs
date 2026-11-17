@@ -1,5 +1,6 @@
 ﻿using Random = System.Random;
 using MMF.Cooking;
+using MMF.Data;
 using NUnit.Framework;
 using MMF.Truck;
 using MMF.Player;
@@ -59,12 +60,16 @@ namespace MMF.Tests
             var player = new GameObject("Player test");
             var stationObject = new GameObject("Station test");
             var wall = new GameObject("Wall test");
+            var tuning = ScriptableObject.CreateInstance<PlayerTuning>();
             try
             {
                 var truck = truckObject.AddComponent<TruckArea>();
                 player.transform.position = new Vector2(playerX, 0.5f);
                 player.AddComponent<BoxCollider2D>().size = Vector2.one;
                 var movement = player.AddComponent<PlayerMovement>();
+                var movementData = new SerializedObject(movement);
+                movementData.FindProperty("_tuning").objectReferenceValue = tuning;
+                movementData.ApplyModifiedPropertiesWithoutUndo();
                 var interactor = player.AddComponent<PlayerInteractor>();
                 movement.SetMoveDirection(Vector2.right);
                 stationObject.transform.position = new Vector2(0.8f, 0.5f);
@@ -90,6 +95,7 @@ namespace MMF.Tests
                 UnityEngine.Object.DestroyImmediate(player);
                 UnityEngine.Object.DestroyImmediate(truckObject);
                 UnityEngine.Object.DestroyImmediate(wall);
+                UnityEngine.Object.DestroyImmediate(tuning);
             }
         }
         private static FryingSequence Create()

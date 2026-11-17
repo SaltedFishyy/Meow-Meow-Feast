@@ -19,6 +19,8 @@ namespace MMF.Core
         private readonly Vector3[] _corners = new Vector3[4];
         /// <summary>Ground rectangle in world coordinates.</summary>
         public Rect WorldRect => new Rect((Vector2)transform.position - _size * 0.5f, _size);
+        /// <summary>Screen-height fraction below the top of the backpack row.</summary>
+        public float BackpackScreenFraction { get; private set; }
         private void Start() { RefreshLayout(); }
         private void LateUpdate() { RefreshLayout(); }
         /// <summary>Updates ground and walls from map dimensions and actual screen UI height.</summary>
@@ -31,6 +33,7 @@ namespace MMF.Core
             _backpackRow.GetWorldCorners(_corners);
             float screenTop = RectTransformUtility.WorldToScreenPoint(null, _corners[1]).y;
             float fraction = Mathf.Clamp01((screenTop - _camera.pixelRect.yMin) / Mathf.Max(1f, _camera.pixelHeight));
+            BackpackScreenFraction = fraction;
             float bottom = rect.yMin + 2f * _follow.OutsideSize * fraction + _bottomMargin;
             float half = _wallThickness * 0.5f;
             SetWall(_left, new Vector2(rect.xMin - half, rect.center.y), new Vector2(_wallThickness, _size.y + 2f * _wallThickness));

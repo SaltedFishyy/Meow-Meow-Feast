@@ -13,6 +13,8 @@ namespace MMF.Player
         [SerializeField, Min(0f)] private float _headLength = 0.3f;
         [SerializeField, Min(0f)] private float _headWidth = 0.25f;
         [SerializeField] private Color _color = new Color(1f, 1f, 1f, 0.5f);
+        [SerializeField, Min(0f)] private float _minimumLength = 1f;
+        [SerializeField, Min(0f)] private float _maximumLength = 3f;
         private readonly Vector3[] _vertices = new Vector3[7];
         private readonly Color[] _colors = new Color[7];
         private readonly int[] _triangles = { 0, 1, 2, 0, 2, 3, 4, 5, 6 };
@@ -34,7 +36,7 @@ namespace MMF.Player
         {
             _meshRenderer.enabled = _throw.Charging;
             if (!_throw.Charging) return;
-            float distance = _throw.Distance;
+            float distance = Mathf.Lerp(_minimumLength, _maximumLength, _throw.Charge);
             if (_distance != distance || _meshLineWidth != _lineWidth ||
                 _meshHeadLength != _headLength || _meshHeadWidth != _headWidth || _meshColor != _color)
                 RebuildMesh(distance);

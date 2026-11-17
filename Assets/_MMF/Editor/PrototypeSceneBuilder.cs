@@ -90,6 +90,18 @@ namespace MMF.Editor
 
             PlayerBackpack backpack = CreatePlayer(sprite, controls);
             TruckArea truck = CreateTruck(sprite);
+            SerializedObject throwData = new SerializedObject(backpack.GetComponent<PlayerThrow>());
+            SerializedProperty throwWalls = throwData.FindProperty("_walls");
+            SerializedObject truckData = new SerializedObject(truck);
+            SerializedProperty truckWalls = truckData.FindProperty("_walls");
+            throwWalls.arraySize = truckWalls.arraySize + 4;
+            for (int i = 0; i < truckWalls.arraySize; i++)
+                throwWalls.GetArrayElementAtIndex(i).objectReferenceValue =
+                    ((Transform)truckWalls.GetArrayElementAtIndex(i).objectReferenceValue).GetComponent<BoxCollider2D>();
+            BoxCollider2D[] mapWalls = { left, right, top, bottom };
+            for (int i = 0; i < mapWalls.Length; i++)
+                throwWalls.GetArrayElementAtIndex(truckWalls.arraySize + i).objectReferenceValue = mapWalls[i];
+            throwData.ApplyModifiedPropertiesWithoutUndo();
             PlayerAttack attack = backpack.gameObject.AddComponent<PlayerAttack>();
             SetReference(attack, "_truck", truck);
             GameObject swingFlash = new GameObject("Swing Flash");

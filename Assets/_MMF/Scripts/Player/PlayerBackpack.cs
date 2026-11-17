@@ -71,9 +71,21 @@ namespace MMF.Player
         /// <summary>Creates a ground item with the same pickup delay as Q.</summary>
         public void DropItem(ItemDefinition item)
         {
+            DropItem(item, transform.position);
+        }
+        /// <summary>Creates a drop at a position, optionally sliding before its pickup timers start.</summary>
+        public void DropItem(ItemDefinition item, Vector3 position, ThrowTuning throwTuning = null,
+            Vector2 velocity = default, BoxCollider2D[] walls = null)
+        {
             GameObject drop = new GameObject("Dropped " + item.name);
-            drop.transform.position = transform.position;
+            drop.transform.position = position;
             drop.AddComponent<SpriteRenderer>().sortingOrder = 1;
+            if (throwTuning != null)
+            {
+                drop.AddComponent<ThrownItem>().Initialize(item, _itemSprite, _worldItemSize,
+                    this, throwTuning, velocity, walls);
+                return;
+            }
             float lifetime = item.NeverExpiresOnGround ? float.PositiveInfinity : _tuning.WorldLifetime;
             drop.AddComponent<WorldItem>().Initialize(item, _itemSprite, _tuning.DropPickupDelay, lifetime, _worldItemSize);
         }

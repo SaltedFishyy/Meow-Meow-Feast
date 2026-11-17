@@ -13,6 +13,13 @@ namespace MMF.Data
         [SerializeField, TuningLabel("地面摩擦（每秒减速多少格/秒）"), Min(0f)] private float _friction = 12f;
         [SerializeField, TuningLabel("撞墙后保留多少速度（0～1）"), Min(0f), Range(0f, 1f)] private float _bounce = 0.5f;
 
+        [SerializeField, TuningLabel("没蓄力时匀速平移几秒"), Min(0f)] private float _minimumAirTime = 0f;
+        [SerializeField, TuningLabel("蓄满时匀速平移几秒"), Min(0f)] private float _maximumAirTime = 0.5f;
+
+        /// <summary>Air duration before charging.</summary>
+        public float MinimumAirTime => _minimumAirTime;
+        /// <summary>Air duration at full charge.</summary>
+        public float MaximumAirTime => _maximumAirTime;
         /// <summary>Seconds to reach full charge.</summary>
         public float ChargeSeconds => _chargeSeconds;
         /// <summary>Launch speed before charging.</summary>

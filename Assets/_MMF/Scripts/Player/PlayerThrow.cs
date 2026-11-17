@@ -38,10 +38,11 @@ namespace MMF.Player
         {
             if (!Charging) return;
             float speed = LaunchSpeed;
+            float airTime = Mathf.Lerp(_tuning.MinimumAirTime, _tuning.MaximumAirTime, Charge);
             Charging = false;
             ItemDefinition item = _backpack.ItemAt(_backpack.Model.SelectedSlot);
             if (item == null || !_backpack.Model.TryDrop(out _)) return;
-            _backpack.DropItem(item, transform.position, _tuning, Direction * speed, _walls);
+            _backpack.DropItem(item, transform.position, _tuning, Direction * speed, _walls, airTime);
         }
 
         /// <summary>Discards the current charge.</summary>

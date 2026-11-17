@@ -75,7 +75,7 @@ namespace MMF.Player
         }
         /// <summary>Creates a drop at a position, optionally sliding before its pickup timers start.</summary>
         public void DropItem(ItemDefinition item, Vector3 position, ThrowTuning throwTuning = null,
-            Vector2 velocity = default, BoxCollider2D[] walls = null)
+            Vector2 velocity = default, BoxCollider2D[] walls = null, float airTime = 0f)
         {
             GameObject drop = new GameObject("Dropped " + item.name);
             drop.transform.position = position;
@@ -83,7 +83,7 @@ namespace MMF.Player
             if (throwTuning != null)
             {
                 drop.AddComponent<ThrownItem>().Initialize(item, _itemSprite, _worldItemSize,
-                    this, throwTuning, velocity, walls);
+                    this, throwTuning, velocity, walls, airTime);
                 return;
             }
             float lifetime = item.NeverExpiresOnGround ? float.PositiveInfinity : _tuning.WorldLifetime;

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MMF.Player
 {
-    /// <summary>Slides an item against only the supplied rectangular walls, then creates a normal drop.</summary>
+    /// <summary>Glides and slides against only the supplied walls, then creates a normal drop.</summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public sealed class ThrownItem : MonoBehaviour
     {
@@ -17,10 +17,14 @@ namespace MMF.Player
         private Vector2 _direction;
         private Vector2 _halfSize;
         private float _speed;
+        private float _glideElapsed;
+        private float _glideTime;
+
+        private bool IsGliding => _glideElapsed < _glideTime;
 
         /// <summary>Configures the same appearance as a ground item without registering it for pickup.</summary>
         public void Initialize(ItemDefinition item, Sprite sprite, float size, PlayerBackpack backpack,
-            ThrowTuning tuning, Vector2 velocity, BoxCollider2D[] walls)
+            ThrowTuning tuning, Vector2 velocity, BoxCollider2D[] walls, float airTime = 0f)
         {
             _item = item;
             _backpack = backpack;
@@ -28,6 +32,8 @@ namespace MMF.Player
             _walls = walls;
             _speed = velocity.magnitude;
             _direction = velocity.normalized;
+            _glideTime = Mathf.Max(0f, airTime);
+            _glideElapsed = 0f;
             SpriteRenderer renderer = GetComponent<SpriteRenderer>();
             renderer.sprite = sprite;
             renderer.color = item.Color;
@@ -37,10 +43,26 @@ namespace MMF.Player
 
         private void Update()
         {
-            Vector2 position = transform.position;
             float remaining = Time.deltaTime;
-            float friction = Mathf.Max(0f, _tuning.Friction);
-            for (int impact = 0; impact < MaximumImpactsPerFrame && remaining > 0f && _speed > StopSpeed; impact++)
+            if (IsGliding)
+            {
+                float duration = Mathf.Min(remaining, _glideTime - _glideElapsed);
+                Move(duration, 0f);
+                _glideElapsed = Mathf.Min(_glideTime, _glideElapsed + duration);
+                remaining = Mathf.Max(0f, remaining - duration);
+                if (IsGliding) return;
+            }
+            Move(remaining, Mathf.Max(0f, _tuning.Friction));
+            if (_speed > StopSpeed) return;
+            _backpack.DropItem(_item, transform.position);
+            gameObject.SetActive(false);
+            Destroy(gameObject);
+        }
+
+        private void Move(float remaining, float friction)
+        {
+            Vector2 position = transform.position;
+            for (int impact = 0; impact < MaximumImpactsPerFrame && remaining > 0f && _speed > (IsGliding ? 0f : StopSpeed); impact++)
             {
                 float duration = friction > 0f ? Mathf.Min(remaining, _speed / friction) : remaining;
                 float distance = _speed * duration - 0.5f * friction * duration * duration;
@@ -88,10 +110,6 @@ namespace MMF.Player
             }
             // If the impact budget is exhausted, discard this frame's unused time rather than tunnel.
             transform.position = new Vector3(position.x, position.y, transform.position.z);
-            if (_speed > StopSpeed) return;
-            _backpack.DropItem(_item, transform.position);
-            gameObject.SetActive(false);
-            Destroy(gameObject);
         }
 
         private static void Separate(ref Vector2 position, Vector2 min, Vector2 max)

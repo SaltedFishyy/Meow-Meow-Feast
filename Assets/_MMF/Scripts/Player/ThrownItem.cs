@@ -1,9 +1,10 @@
+using MMF.Combat;
 using MMF.Data;
 using UnityEngine;
 
 namespace MMF.Player
 {
-    /// <summary>Glides and slides against only the supplied walls, then creates a normal drop.</summary>
+    /// <summary>Glides and slides against the supplied walls and active monsters, then creates a normal drop.</summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public sealed class ThrownItem : MonoBehaviour
     {
@@ -14,6 +15,7 @@ namespace MMF.Player
         private PlayerBackpack _backpack;
         private ThrowTuning _tuning;
         private BoxCollider2D[] _walls;
+        private BoxCollider2D[] _monsterColliders;
         private Vector2 _direction;
         private Vector2 _halfSize;
         private float _speed;
@@ -30,6 +32,11 @@ namespace MMF.Player
             _backpack = backpack;
             _tuning = tuning;
             _walls = walls;
+            // Spawners reuse these monsters by deactivating/reactivating them on death/respawn.
+            Monster[] monsters = FindObjectsByType<Monster>(FindObjectsInactive.Include);
+            _monsterColliders = new BoxCollider2D[monsters.Length];
+            for (int i = 0; i < monsters.Length; i++)
+                _monsterColliders[i] = monsters[i].GetComponent<BoxCollider2D>();
             _speed = velocity.magnitude;
             _direction = velocity.normalized;
             _glideTime = Mathf.Max(0f, airTime);
@@ -66,29 +73,37 @@ namespace MMF.Player
             {
                 float duration = friction > 0f ? Mathf.Min(remaining, _speed / friction) : remaining;
                 float distance = _speed * duration - 0.5f * friction * duration * duration;
-                // Resolve any overlap from a wall moving during layout before choosing the earliest impact.
-                for (int i = 0; i < _walls.Length; i++)
+                // Resolve overlaps with current obstacle bounds before choosing the earliest impact.
+                for (int i = 0; i < _walls.Length + _monsterColliders.Length; i++)
                 {
-                    BoxCollider2D wall = _walls[i];
+                    BoxCollider2D wall = ObstacleAt(i);
                     if (wall == null || !wall.enabled || !wall.gameObject.activeInHierarchy) continue;
                     Bounds bounds = wall.bounds;
                     Separate(ref position, (Vector2)bounds.min - _halfSize, (Vector2)bounds.max + _halfSize);
                 }
                 float nearest = distance;
+                float bounce = _tuning.Bounce;
                 Vector2 normal = Vector2.zero;
-                for (int i = 0; i < _walls.Length; i++)
+                for (int i = 0; i < _walls.Length + _monsterColliders.Length; i++)
                 {
-                    BoxCollider2D wall = _walls[i];
+                    BoxCollider2D wall = ObstacleAt(i);
                     if (wall == null || !wall.enabled || !wall.gameObject.activeInHierarchy) continue;
                     Bounds bounds = wall.bounds;
                     Vector2 min = (Vector2)bounds.min - _halfSize;
                     Vector2 max = (Vector2)bounds.max + _halfSize;
                     if (!Sweep(position, _direction, min, max, out float hit, out Vector2 hitNormal) ||
                         hit > nearest) continue;
+                    float obstacleBounce = i < _walls.Length ? _tuning.Bounce : _tuning.MonsterBounce;
                     if (Mathf.Abs(hit - nearest) <= ContactGap && normal != Vector2.zero)
+                    {
                         normal = (normal + hitNormal).normalized;
+                        bounce = Mathf.Min(bounce, obstacleBounce);
+                    }
                     else
+                    {
                         normal = hitNormal;
+                        bounce = obstacleBounce;
+                    }
                     nearest = hit;
                 }
 
@@ -106,10 +121,15 @@ namespace MMF.Player
                 remaining = Mathf.Max(0f, remaining - elapsed);
                 position += normal * ContactGap;
                 _direction = Vector2.Reflect(_direction, normal).normalized;
-                _speed = endSpeed * Mathf.Clamp01(_tuning.Bounce);
+                _speed = endSpeed * Mathf.Clamp01(bounce);
             }
             // If the impact budget is exhausted, discard this frame's unused time rather than tunnel.
             transform.position = new Vector3(position.x, position.y, transform.position.z);
+        }
+
+        private BoxCollider2D ObstacleAt(int index)
+        {
+            return index < _walls.Length ? _walls[index] : _monsterColliders[index - _walls.Length];
         }
 
         private static void Separate(ref Vector2 position, Vector2 min, Vector2 max)

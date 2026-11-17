@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.emilycai.ability-studio": {
+      "version": "file:../LocalPackages/com.emilycai.ability-studio-0.2.1.tgz",
+      "depth": 0,
+      "source": "local-tarball",
+      "dependencies": {
+        "com.unity.inputsystem": "1.20.0"
+      }
+    },
     "com.unity.2d.animation": {
       "version": "16.0.1",
       "depth": 0,

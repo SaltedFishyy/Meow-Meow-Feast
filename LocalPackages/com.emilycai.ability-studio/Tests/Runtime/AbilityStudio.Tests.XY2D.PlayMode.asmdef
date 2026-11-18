@@ -1,0 +1,5 @@
+{
+  "name": "AbilityStudio.Tests.XY2D.PlayMode",
+  "references": ["AbilityStudio.Model", "AbilityStudio.Runtime", "AbilityStudio.Playground"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

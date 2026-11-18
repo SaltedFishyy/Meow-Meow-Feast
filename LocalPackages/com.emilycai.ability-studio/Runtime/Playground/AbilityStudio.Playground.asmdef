@@ -1,0 +1,10 @@
+﻿{
+    "autoReferenced":  false,
+    "rootNamespace":  "AbilityStudio.Playground",
+    "name":  "AbilityStudio.Playground",
+    "references":  [
+                       "AbilityStudio.Model",
+                       "AbilityStudio.Runtime",
+                       "Unity.InputSystem"
+                   ]
+}

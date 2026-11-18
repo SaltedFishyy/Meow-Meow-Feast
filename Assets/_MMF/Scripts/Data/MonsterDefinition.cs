@@ -26,6 +26,8 @@ namespace MMF.Data
         [SerializeField, TuningLabel("攻击冷却几秒"), Min(0f)] private float _attackCooldown = 1.5f;
         [SerializeField, TuningLabel("每下伤害"), Min(0)] private int _attackDamage = 1;
         [SerializeField, TuningLabel("打车每下伤害"), Min(0)] private int _truckDamage = 1;
+        [SerializeField, TuningLabel("车边最少等几秒"), Min(0f)] private float _truckWaitMin = 8f;
+        [SerializeField, TuningLabel("车边最多等几秒"), Min(0f)] private float _truckWaitMax = 12f;
 
         public float AttackRange => _attackRange;
         public float AttackWindUp => _attackWindUp;
@@ -34,6 +36,12 @@ namespace MMF.Data
 
         /// <summary>Damage dealt to the truck when a lunge hits.</summary>
         public int TruckDamage => _truckDamage;
+
+        /// <summary>Minimum time spent waiting in truck attack range.</summary>
+        public float TruckWaitMin => _truckWaitMin;
+
+        /// <summary>Maximum time spent waiting in truck attack range.</summary>
+        public float TruckWaitMax => _truckWaitMax;
 
         public float AvoidanceDuration => _avoidanceDuration;
         public float ChaseStartDistance => _chaseStartDistance;

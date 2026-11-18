@@ -253,6 +253,9 @@ namespace MMF.Editor
                 SetReference(attack, "_playerCollider", playerCollider);
                 SetReference(attack, "_truck", truck);
                 SetReference(attack, "_truckHealth", truckHealth);
+                MonsterTruckRoutine truckRoutine = visual.gameObject.AddComponent<MonsterTruckRoutine>();
+                SetReference(truckRoutine, "_definition", definition);
+                SetReference(attack, "_truckRoutine", truckRoutine);
                 MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
                 SetReference(dropsComponent, "_dropTable", drops);
                 SetReference(dropsComponent, "_tuning", backpackTuning);

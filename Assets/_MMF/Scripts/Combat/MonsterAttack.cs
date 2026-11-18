@@ -14,6 +14,7 @@ namespace MMF.Combat
         [SerializeField] private Collider2D _playerCollider = null;
         [SerializeField] private TruckArea _truck = null;
         [SerializeField] private TruckHealth _truckHealth = null;
+        [SerializeField] private MonsterTruckRoutine _truckRoutine = null;
         [SerializeField] private Color _warningColor = new Color(1f, 0.45f, 0.15f);
         [SerializeField, Min(0.01f)] private float _warningFlashInterval = 0.08f;
         [SerializeField, Min(0.01f)] private float _lungeSpeed = 14f;
@@ -54,7 +55,12 @@ namespace MMF.Combat
         internal bool Step(Vector2 position, bool hasExternalMotion, out Vector2 displacement)
         {
             displacement = Vector2.zero;
-            if (_windingUp && _attackingTruck && !_truckHealth.CanBeHit)
+            bool chasingPlayer = _targeting.IsChasingPlayer;
+            bool truckInRange = !chasingPlayer && TruckInRange(position);
+            if (_truckRoutine != null)
+                _truckRoutine.Step(chasingPlayer, truckInRange, Time.fixedDeltaTime);
+
+            if (_windingUp && _attackingTruck && (chasingPlayer || !_truckHealth.CanBeHit))
                 _windingUp = false;
 
             if (_windingUp)
@@ -68,11 +74,14 @@ namespace MMF.Combat
             if (_lungeRemaining > 0f)
                 return StepLunge(hasExternalMotion, out displacement);
 
-            if (Time.fixedTime - _lastLaunchTime < _definition.AttackCooldown)
-                return _attackingTruck && _targeting.IsChasingPlayer;
+            if (truckInRange && _truckRoutine != null && !_truckRoutine.CanAttackTruck)
+                return true;
 
-            bool attackTruck = !_targeting.IsChasingPlayer;
-            if (attackTruck ? !TruckInRange(position) : !PlayerInRange()) return false;
+            if (Time.fixedTime - _lastLaunchTime < _definition.AttackCooldown)
+                return _truckRoutine != null ? truckInRange : _attackingTruck && chasingPlayer;
+
+            bool attackTruck = !chasingPlayer;
+            if (attackTruck ? !truckInRange : !PlayerInRange()) return false;
 
             _attackingTruck = attackTruck;
             _windingUp = true;
@@ -115,6 +124,7 @@ namespace MMF.Combat
             {
                 _lungeDirection = _targeting.TargetsFront ? Vector2.left : Vector2.right;
                 _lungeRemaining = _definition.AttackRange;
+                _truckRoutine?.OnTruckAttackLaunched();
                 if (TruckInRange(position)) _truckHealth.TakeHit(_definition.TruckDamage);
                 return;
             }

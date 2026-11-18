@@ -19,20 +19,32 @@ MonoBehaviour:
   cooldown: 1
   baseDamage: 10
   distance: 8
+  integratedAttacks: 0
+  weaponMode: 0
+  kind: 0
+  releases: []
   coreEndpointMigrated: 0
   attack:
     rid: 5963565642716282886
   additionalAttacks: []
   effects:
   - rid: 5963565642716282887
+  - rid: 5963565664572014674
   positions: []
+  responses: []
   bindings:
   - sourceId: skill_core
     targetId: 7acc356576294c92967e5a81fcc74e9d
     input: position
+    sourcePort: 
   - sourceId: 7acc356576294c92967e5a81fcc74e9d
     targetId: 19ccf68ff7384d12a0917c291b6933fe
     input: targets
+    sourcePort: 
+  - sourceId: 19ccf68ff7384d12a0917c291b6933fe
+    targetId: 79b68e67c3294623b6a1dcbf591f3f26
+    input: targets
+    sourcePort: 
   boardLayout:
   - moduleId: skill_core
     position: {x: 220, y: 20}
@@ -40,6 +52,8 @@ MonoBehaviour:
     position: {x: 620, y: 20}
   - moduleId: 19ccf68ff7384d12a0917c291b6933fe
     position: {x: 1040, y: 20}
+  - moduleId: 79b68e67c3294623b6a1dcbf591f3f26
+    position: {x: 1420, y: 20}
   references:
     version: 2
     RefIds:
@@ -47,6 +61,10 @@ MonoBehaviour:
       type: {class: ProjectileAttack, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
         moduleId: 7acc356576294c92967e5a81fcc74e9d
+        releaseMode: 0
+        settings:
+          rid: 5963565664572014592
+        damageMode: 0
         speed: 15
         range: 12
         size: 0.5
@@ -56,3 +74,20 @@ MonoBehaviour:
         moduleId: 19ccf68ff7384d12a0917c291b6933fe
         stopDistance: 1.5
         duration: 0.45
+    - rid: 5963565664572014592
+      type: {class: ChargeRelease, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: c97f929b02a1400f9b337e98e815117d
+        baseDamage: 10
+        cooldown: 1
+        distance: 8
+        duration: 2
+    - rid: 5963565664572014674
+      type: {class: CameraShakeFeedback, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: 79b68e67c3294623b6a1dcbf591f3f26
+        triggerMode: 1
+        minInterval: 0
+        strength: 0.15
+        duration: 0.2
+        frequency: 25

@@ -122,6 +122,7 @@ namespace MMF.Editor
             SetReference(follow, "_map", arena);
             SetReference(follow, "_truck", truck);
             RectTransform row = CreateBackpackContent(sprite, backpack);
+            CreatePlayerHealthBar(row.parent, backpack.GetComponent<PlayerHealth>());
             CreateFrying(sprite, backpack, truck, row);
             SetReference(arena, "_follow", follow);
             SetReference(arena, "_backpackRow", row);
@@ -504,6 +505,16 @@ namespace MMF.Editor
                 Debug.LogError("Backpack font cannot display the required Chinese characters.");
             AssetDatabase.SaveAssets();
             return row;
+        }
+
+        private static void CreatePlayerHealthBar(Transform canvas, PlayerHealth health)
+        {
+            RectTransform row = new GameObject("Player Health Row", typeof(RectTransform)).GetComponent<RectTransform>();
+            row.SetParent(canvas, false);
+            row.anchorMin = row.anchorMax = row.pivot = new Vector2(0f, 1f);
+            row.sizeDelta = Vector2.zero;
+            PlayerHealthBar bar = row.gameObject.AddComponent<PlayerHealthBar>();
+            SetReference(bar, "_health", health);
         }
 
         private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow)

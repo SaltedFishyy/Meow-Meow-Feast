@@ -20,6 +20,7 @@ namespace MMF.Player
         private PlayerBackpack _backpack;
         private PlayerMovement _movement;
         private bool _carrying;
+        private Vector3 _stationPositionBeforeLift;
         private readonly List<Collider2D> _placementOverlaps = new List<Collider2D>(16);
         private const float PlacementInset = 0.05f;
         public bool Cooking { get; private set; }
@@ -79,6 +80,7 @@ namespace MMF.Player
             if (!_carrying)
             {
                 if (!_station.InRange(transform.position)) return false;
+                _stationPositionBeforeLift = _station.transform.position;
                 _carrying = true; _station.SetCarried(true);
                 _station.transform.SetParent(transform, false); _station.transform.localPosition = _carryOffset;
                 return true;
@@ -91,10 +93,23 @@ namespace MMF.Player
             HidePlacement();
             return true;
         }
-        private bool TryGetPlacement(out Vector2 target)
+        /// <summary>Sets down the station on this cell or returns it to its last position.</summary>
+        public void DropCarriedStation()
         {
-            target = (Vector2)transform.position + _movement.LastMoveDirection;
-            target = _truck.SnapCell(target, _station.Size);
+            if (!_carrying) return;
+            bool valid = TryGetPlacement(transform.position, out Vector2 target);
+            _station.transform.SetParent(null, true);
+            _station.transform.position = valid ? (Vector3)target : _stationPositionBeforeLift;
+            _station.SetCarried(false);
+            _carrying = false;
+            HidePlacement();
+        }
+        private bool TryGetPlacement(out Vector2 target) =>
+            TryGetPlacement((Vector2)transform.position + _movement.LastMoveDirection, out target);
+
+        private bool TryGetPlacement(Vector2 position, out Vector2 target)
+        {
+            target = _truck.SnapCell(position, _station.Size);
             if (!_truck.ContainsFootprint(target, _station.Size)) return false;
             Physics2D.SyncTransforms();
             Physics2D.OverlapBox(target, _station.Size - Vector2.one * (2f * PlacementInset), 0f,

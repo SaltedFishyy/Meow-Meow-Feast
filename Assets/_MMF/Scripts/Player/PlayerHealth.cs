@@ -17,14 +17,23 @@ namespace MMF.Player
         /// <summary>Raised when damage immunity starts.</summary>
         public event Action InvincibilityStarted;
 
-        /// <summary>Raised after health is restored on enable or reduced by a hit.</summary>
+        /// <summary>Raised when a hit reduces health to zero.</summary>
+        public event Action Downed;
+
+        /// <summary>Raised after revival starts damage immunity.</summary>
+        public event Action Revived;
+
+        /// <summary>Raised when current or maximum health changes.</summary>
         public event Action Changed;
 
         /// <summary>Health remaining in this life.</summary>
         public int Current { get; private set; }
 
-        /// <summary>Maximum health sampled when enabled.</summary>
+        /// <summary>Maximum health sampled on enable and revival.</summary>
         public int Max { get; private set; }
+
+        /// <summary>Whether the player is waiting to revive.</summary>
+        public bool IsDown => Current == 0;
 
         /// <summary>Whether damage immunity is still active.</summary>
         public bool IsInvincible => Time.timeAsDouble < _invincibleUntil;
@@ -52,9 +61,21 @@ namespace MMF.Player
         {
             if (!CanBeHit || damage <= 0) return;
             Current = Mathf.Max(0, Current - damage);
-            StartInvincibility();
+            if (!IsDown) StartInvincibility();
             Hit?.Invoke(direction);
+            if (IsDown) Downed?.Invoke();
             Changed?.Invoke();
+        }
+
+        /// <summary>Restores the downed player to full health and starts immunity.</summary>
+        public void Revive()
+        {
+            if (!IsDown) return;
+            Max = _tuning.MaxHealth;
+            Current = Max;
+            Changed?.Invoke();
+            StartInvincibility();
+            Revived?.Invoke();
         }
     }
 }

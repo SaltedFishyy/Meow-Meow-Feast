@@ -1,4 +1,5 @@
 using MMF.Data;
+using MMF.Player;
 using MMF.Truck;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace MMF.Combat
     {
         [SerializeField] private MonsterDefinition _definition = null;
         [SerializeField] private Transform _player = null;
+        [SerializeField] private PlayerHealth _playerHealth = null;
         [SerializeField] private TruckArea _truck = null;
         private bool _chasing;
         private bool _front;
@@ -24,7 +26,7 @@ namespace MMF.Combat
         public Vector2 TargetPosition(Vector2 position)
         {
             Vector2 playerPosition = _player.position;
-            _chasing = ShouldChase(_truck.Contains(playerPosition),
+            _chasing = ShouldChase((_playerHealth != null && _playerHealth.IsDown) || _truck.Contains(playerPosition),
                 Vector2.Distance(position, playerPosition), _chasing,
                 _definition.ChaseStartDistance, _definition.ChaseStopDistance);
             float padding = _definition.Size * 0.5f + WallClearance;

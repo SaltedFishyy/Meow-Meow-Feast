@@ -90,6 +90,7 @@ namespace MMF.Editor
 
             PlayerBackpack backpack = CreatePlayer(sprite, controls);
             TruckArea truck = CreateTruck(sprite);
+            SetReference(backpack.GetComponent<PlayerDowned>(), "_truck", truck);
             SerializedObject throwData = new SerializedObject(backpack.GetComponent<PlayerThrow>());
             SerializedProperty throwWalls = throwData.FindProperty("_walls");
             SerializedObject truckData = new SerializedObject(truck);
@@ -216,6 +217,7 @@ namespace MMF.Editor
                 MonsterTargeting targeting = visual.gameObject.AddComponent<MonsterTargeting>();
                 SetReference(targeting, "_definition", definition);
                 SetReference(targeting, "_player", player.transform);
+                SetReference(targeting, "_playerHealth", playerHealth);
                 SetReference(targeting, "_truck", truck);
                 Monster monster = visual.gameObject.AddComponent<Monster>();
                 SetReference(monster, "_definition", definition);
@@ -359,6 +361,8 @@ namespace MMF.Editor
             SerializedObject readerData = new SerializedObject(reader);
             readerData.FindProperty("_controls").objectReferenceValue = controls;
             readerData.ApplyModifiedPropertiesWithoutUndo();
+            PlayerDowned downed = player.AddComponent<PlayerDowned>();
+            SetReference(downed, "_tuning", healthTuning);
             return backpack;
         }
 

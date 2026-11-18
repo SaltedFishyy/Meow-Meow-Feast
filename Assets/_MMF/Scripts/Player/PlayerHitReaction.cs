@@ -34,6 +34,8 @@ namespace MMF.Player
         /// <summary>Whether player and monster collision pairs are suppressed.</summary>
         public bool PassesThroughMonsters { get; private set; }
 
+        internal bool IsKnockingBack => _ownsMovement;
+
         private void Awake()
         {
             _filter = new ContactFilter2D { useTriggers = false };
@@ -66,6 +68,7 @@ namespace MMF.Player
             _knockbackRemaining = Mathf.Max(_knockbackDuration, Time.fixedDeltaTime);
             _knockbackSpeed = distance / _knockbackRemaining;
             _ownsMovement = true;
+            if (_health.IsDown) SetMonsterCollisions(true);
             _movement.SetHitReactionControl(true);
             _body.linearVelocity = Vector2.zero;
         }
@@ -94,7 +97,7 @@ namespace MMF.Player
         private void FixedUpdate()
         {
             if (PassesThroughMonsters)
-                SetMonsterCollisions(_health.IsInvincible || OverlapsMonster());
+                SetMonsterCollisions(_health.IsInvincible || (_health.IsDown && IsKnockingBack) || OverlapsMonster());
 
             if (!_ownsMovement) return;
             if (_knockbackRemaining <= StepTimeTolerance)

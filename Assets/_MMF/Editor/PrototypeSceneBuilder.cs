@@ -190,6 +190,8 @@ namespace MMF.Editor
             players.arraySize = playerColliders.Length;
             for (int i = 0; i < playerColliders.Length; i++)
                 players.GetArrayElementAtIndex(i).objectReferenceValue = playerColliders[i];
+            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+            Collider2D playerCollider = player.GetComponent<Collider2D>();
             Vector2[] positions = { new Vector2(0f, 10f), new Vector2(-12f, 5f),
                 new Vector2(13f, 2f), new Vector2(-8f, -9f), new Vector2(4f, -10f) };
             SerializedProperty points = spawnData.FindProperty("_spawnPoints");
@@ -216,6 +218,11 @@ namespace MMF.Editor
                 SetReference(targeting, "_truck", truck);
                 Monster monster = visual.gameObject.AddComponent<Monster>();
                 SetReference(monster, "_definition", definition);
+                MonsterAttack attack = visual.gameObject.AddComponent<MonsterAttack>();
+                SetReference(attack, "_definition", definition);
+                SetReference(attack, "_player", playerHealth);
+                SetReference(attack, "_playerCollider", playerCollider);
+                SetReference(attack, "_truck", truck);
                 MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
                 SetReference(dropsComponent, "_dropTable", drops);
                 SetReference(dropsComponent, "_tuning", backpackTuning);
@@ -302,6 +309,8 @@ namespace MMF.Editor
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             player.AddComponent<BoxCollider2D>().size = Vector2.one;
+            PlayerHealth health = player.AddComponent<PlayerHealth>();
+            SetReference(health, "_tuning", LoadPlayerHealthTuning());
             PlayerTuning tuning = LoadPlayerTuning();
             PlayerMovement movement = player.AddComponent<PlayerMovement>();
             SetReference(movement, "_tuning", tuning);
@@ -356,6 +365,17 @@ namespace MMF.Editor
             PlayerTuning tuning = AssetDatabase.LoadAssetAtPath<PlayerTuning>(path);
             if (tuning != null) return tuning;
             tuning = ScriptableObject.CreateInstance<PlayerTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
+        }
+
+        private static PlayerHealthTuning LoadPlayerHealthTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/PlayerHealthTuning.asset";
+            PlayerHealthTuning tuning = AssetDatabase.LoadAssetAtPath<PlayerHealthTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<PlayerHealthTuning>();
             AssetDatabase.CreateAsset(tuning, path);
             return tuning;
         }

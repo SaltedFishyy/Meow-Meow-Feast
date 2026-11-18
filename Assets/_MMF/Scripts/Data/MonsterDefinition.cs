@@ -21,6 +21,15 @@ namespace MMF.Data
 
         [SerializeField, TuningLabel("绕开障碍几秒"), Min(0f)] private float _avoidanceDuration = 0.5f;
 
+        [SerializeField, TuningLabel("攻击范围（边到边距离）"), Min(0f)] private float _attackRange = 1f;
+        [SerializeField, TuningLabel("攻击前提示几秒"), Min(0f)] private float _attackWindUp = 0.5f;
+        [SerializeField, TuningLabel("攻击冷却几秒"), Min(0f)] private float _attackCooldown = 1.5f;
+        [SerializeField, TuningLabel("每下伤害"), Min(0)] private int _attackDamage = 1;
+
+        public float AttackRange => _attackRange;
+        public float AttackWindUp => _attackWindUp;
+        public float AttackCooldown => _attackCooldown;
+        public int AttackDamage => _attackDamage;
         public float AvoidanceDuration => _avoidanceDuration;
         public float ChaseStartDistance => _chaseStartDistance;
         public float ChaseStopDistance => _chaseStopDistance;

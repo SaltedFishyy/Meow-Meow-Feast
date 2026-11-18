@@ -10,6 +10,7 @@ namespace MMF.Combat
     {
         [SerializeField] private MonsterDefinition _definition = null;
         private MonsterTargeting _targeting;
+        private MonsterAttack _attack;
         private BoxCollider2D _collider;
         private Rigidbody2D _body;
         private SpriteRenderer _renderer;
@@ -30,10 +31,13 @@ namespace MMF.Combat
         /// <summary>Current sidestep direction, or zero while waiting or not avoiding.</summary>
         public Vector2 AvoidanceDirection => _avoidanceRemaining > 0f ? _avoidanceDirection : Vector2.zero;
 
+        internal bool IsHitFlashing => _flashRemaining > 0f;
+
         private void Awake()
         {
             _body = GetComponent<Rigidbody2D>();
             _targeting = GetComponent<MonsterTargeting>();
+            _attack = GetComponent<MonsterAttack>();
             _collider = GetComponent<BoxCollider2D>();
             _renderer = GetComponent<SpriteRenderer>();
             _filter = new ContactFilter2D { useTriggers = false };
@@ -61,7 +65,11 @@ namespace MMF.Combat
         private void FixedUpdate()
         {
             Vector2 target = _targeting.TargetPosition(_body.position);
-            bool sliding = !_shoved && _knockback.sqrMagnitude <= 0f;
+            bool hasExternalMotion = _shoved || _knockback.sqrMagnitude > 0f;
+            Vector2 attackDisplacement = Vector2.zero;
+            bool attackControlsMovement = _attack != null && _attack.isActiveAndEnabled &&
+                _attack.Step(_body.position, hasExternalMotion, out attackDisplacement);
+            bool sliding = !hasExternalMotion && !attackControlsMovement;
             Vector2 displacement;
             if (_knockback.sqrMagnitude > 0f)
             {
@@ -70,6 +78,8 @@ namespace MMF.Combat
             }
             else if (_shoved)
                 displacement = _shove;
+            else if (attackControlsMovement)
+                displacement = attackDisplacement;
             else
                 displacement = Vector2.ClampMagnitude(target - _body.position,
                     _definition.Speed * Time.fixedDeltaTime);
@@ -105,7 +115,11 @@ namespace MMF.Combat
                 }
             }
             _avoidanceRemaining = 0f;
-            _body.MovePosition(_body.position + LimitDynamicContact(movement));
+            movement = LimitDynamicContact(movement);
+            if (attackControlsMovement && !hasExternalMotion &&
+                movement.sqrMagnitude < attackDisplacement.sqrMagnitude - ContactGap * ContactGap)
+                _attack.StopLunge();
+            _body.MovePosition(_body.position + movement);
         }
 
         private bool TryAvoidMonster(int count, Vector2 direction, float distance)

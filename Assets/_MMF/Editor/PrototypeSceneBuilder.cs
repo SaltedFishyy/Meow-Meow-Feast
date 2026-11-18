@@ -124,6 +124,7 @@ namespace MMF.Editor
             SetReference(follow, "_truck", truck);
             RectTransform row = CreateBackpackContent(sprite, backpack);
             CreatePlayerHealthBar(row.parent, backpack.GetComponent<PlayerHealth>());
+            CreateTruckHealthBar(row.parent, truck.GetComponent<TruckHealth>());
             CreateFrying(sprite, backpack, truck, row);
             SetReference(arena, "_follow", follow);
             SetReference(arena, "_backpackRow", row);
@@ -565,6 +566,30 @@ namespace MMF.Editor
             row.sizeDelta = Vector2.zero;
             PlayerHealthBar bar = row.gameObject.AddComponent<PlayerHealthBar>();
             SetReference(bar, "_health", health);
+        }
+
+        private static void CreateTruckHealthBar(Transform canvas, TruckHealth health)
+        {
+            RectTransform rect = UiRect("Truck Health Bar", canvas, Vector2.zero, Vector2.zero);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
+            rect.gameObject.AddComponent<Image>().raycastTarget = false;
+
+            Image fill = UiRect("Fill", rect, Vector2.zero, Vector2.zero).gameObject.AddComponent<Image>();
+            fill.rectTransform.anchorMin = Vector2.zero;
+            fill.rectTransform.anchorMax = Vector2.one;
+            fill.raycastTarget = false;
+
+            Text label = UiRect("Health Value", rect, Vector2.zero, Vector2.zero).gameObject.AddComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.alignment = TextAnchor.MiddleCenter;
+            label.raycastTarget = false;
+            label.rectTransform.anchorMin = Vector2.zero;
+            label.rectTransform.anchorMax = Vector2.one;
+
+            TruckHealthBar bar = rect.gameObject.AddComponent<TruckHealthBar>();
+            SetReference(bar, "_health", health);
+            SetReference(bar, "_fill", fill);
+            SetReference(bar, "_label", label);
         }
 
         private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow)

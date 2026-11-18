@@ -98,6 +98,12 @@
                                          "type":  "Button",
                                          "id":  "4ded18ef-6834-471b-a89b-29b7fe01d43a",
                                          "expectedControlType":  "Button"
+                                     },
+                                     {
+                                         "name":  "Restart",
+                                         "type":  "Button",
+                                         "id":  "fd2267f4-63b1-46a3-a53b-a38405d4d284",
+                                         "expectedControlType":  "Button"
                                      }
                                  ],
                      "bindings":  [
@@ -232,6 +238,11 @@
                                           "id":  "289af5c7-1023-4f8f-bad7-2568a5569eb5",
                                           "path":  "\u003cKeyboard\u003e/w",
                                           "action":  "FryW"
+                                      },
+                                      {
+                                          "id":  "8937fc02-6beb-4a00-b27f-4053dfcd5928",
+                                          "path":  "\u003cKeyboard\u003e/r",
+                                          "action":  "Restart"
                                       }
                                   ]
                  }

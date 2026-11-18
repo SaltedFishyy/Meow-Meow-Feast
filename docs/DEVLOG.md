@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-11-17 · T009f · 餐车血 0 = 失败画面，按 R 整局重开
+
+**做了什么**（Codex 编写，Claude 审查，一次通过）
+- `TruckHealth` 加 `Destroyed` 事件（血从 >0 变成 0 时发一次）。
+- 新脚本 `UI/GameOverScreen`（挂在背包栏那个 Canvas 上）：`Destroyed` 时 `Time.timeScale = 0`、关掉 `PlayerInputReader`、显示失败画面，并启用一份**单独复制出来**的 `Restart` 动作（所以没失败时 R 没效果）；按 R → `LoadSceneAsync` 重新载入当前场景。物体销毁时如果失败过就把 `timeScale` 改回 1。
+- `MMFControls.inputactions`：`Gameplay` 里加 `Restart`（`<Keyboard>/r`）。
+- `PlayerInputReader`：关掉输入时（失败时）不再因为"右键被取消"把东西扔出去。
+- 生成器：失败画面 UI（全屏 72% 黑底 + "失败" 72 号字 + "按 R 重新开始" 32 号字，默认隐藏）；`requiredActions` 加 `Restart`；**生成后把 `Prototype.unity` 加进 Build Settings**（`ProjectSettings/EditorBuildSettings.asset` 改了，任务清单里列了；之前是空的，不加就没法重新载入场景）。
+- 说明：`MMFControls.inputactions` 在工作区是 CRLF，这是 `* text=auto` + `core.autocrlf=true` 的正常检出，仓库里存的是 LF，不算改动。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；场景生成 3 次，引用 150 个、空 0 个；Build Settings 里 1 个场景；93 个测试全部通过。
+- Play：车血打到 0 → `timeScale` 0、失败画面出现、玩家输入关闭；隔 1 秒怪物位置完全不变。调用重开 → 车 100（几秒后被打到 97）、玩家 5 格血、背包只有平底锅、`timeScale` 1、怪物回到各自出生点附近重新走。连续失败 / 重开两次都正常。Console 没有报错和警告。
+- 因为 Unity 不在前台时模拟不了按键，"按 R"这一下是直接调用重开方法测的；真实按 R 需要用户试玩确认。
+
+**怎么试玩**
+- 待在车里等怪物把车打到 0（约 40 秒）：画面停住，中间显示"失败 / 按 R 重新开始"；按 R 回到开局。
+
+---
+
 ## 2026-11-17 · T009e2 · 顶部中间的餐车血条
 
 **做了什么**（Codex 编写，Claude 审查，一次通过）

@@ -50,7 +50,7 @@ namespace MMF.Editor
                 Debug.LogError("Cannot build prototype: MMFControls/Gameplay/Move is missing.");
                 return;
             }
-            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Interact", "Cancel", "Lift", "Throw", "FryW", "FryA", "FryS", "FryD" };
+            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Interact", "Cancel", "Lift", "Throw", "FryW", "FryA", "FryS", "FryD", "Restart" };
             foreach (string action in requiredActions)
                 if (controls.FindAction("Gameplay/" + action) == null)
                 {
@@ -126,6 +126,8 @@ namespace MMF.Editor
             CreatePlayerHealthBar(row.parent, backpack.GetComponent<PlayerHealth>());
             CreateTruckHealthBar(row.parent, truck.GetComponent<TruckHealth>());
             CreateFrying(sprite, backpack, truck, row);
+            CreateGameOverScreen(row.parent, truck.GetComponent<TruckHealth>(),
+                backpack.GetComponent<PlayerInputReader>(), controls);
             SetReference(arena, "_follow", follow);
             SetReference(arena, "_backpackRow", row);
             Canvas.ForceUpdateCanvases();
@@ -134,10 +136,30 @@ namespace MMF.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
                 throw new IOException("Could not save " + ScenePath);
+            RegisterPrototypeScene();
             scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             ValidateReferences(scene);
             Selection.activeObject = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
             Debug.Log("Prototype scene rebuilt: " + ScenePath);
+        }
+
+        private static void RegisterPrototypeScene()
+        {
+            EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
+            for (int i = 0; i < scenes.Length; i++)
+            {
+                if (scenes[i].path != ScenePath) continue;
+                if (!scenes[i].enabled)
+                {
+                    scenes[i].enabled = true;
+                    EditorBuildSettings.scenes = scenes;
+                }
+                return;
+            }
+
+            System.Array.Resize(ref scenes, scenes.Length + 1);
+            scenes[scenes.Length - 1] = new EditorBuildSettingsScene(ScenePath, true);
+            EditorBuildSettings.scenes = scenes;
         }
 
         private static TruckArea CreateTruck(Sprite sprite)
@@ -590,6 +612,27 @@ namespace MMF.Editor
             SetReference(bar, "_health", health);
             SetReference(bar, "_fill", fill);
             SetReference(bar, "_label", label);
+        }
+
+        private static void CreateGameOverScreen(Transform canvas, TruckHealth health,
+            PlayerInputReader playerInput, InputActionAsset controls)
+        {
+            RectTransform overlay = UiRect("Game Over Overlay", canvas, Vector2.zero, Vector2.zero);
+            overlay.anchorMin = Vector2.zero;
+            overlay.anchorMax = Vector2.one;
+            overlay.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.72f);
+
+            Text title = UiText("Defeat", overlay, new Vector2(480f, 100f), new Vector2(0f, 36f), 72);
+            title.text = "失败";
+            Text hint = UiText("Restart Hint", overlay, new Vector2(480f, 54f), new Vector2(0f, -50f), 32);
+            hint.text = "按 R 重新开始";
+            overlay.gameObject.SetActive(false);
+
+            GameOverScreen screen = canvas.gameObject.AddComponent<GameOverScreen>();
+            SetReference(screen, "_health", health);
+            SetReference(screen, "_playerInput", playerInput);
+            SetReference(screen, "_controls", controls);
+            SetReference(screen, "_overlay", overlay.gameObject);
         }
 
         private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow)

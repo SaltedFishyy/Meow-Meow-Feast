@@ -50,7 +50,11 @@ namespace MMF.Player
             _gameplay.FindAction("Interact", true).performed += context => _interactor?.Interact();
             _gameplay.FindAction("Cancel", true).performed += context => _interactor?.Cancel();
             _gameplay.FindAction("Throw", true).performed += context => _throw?.TryStartCharge();
-            _gameplay.FindAction("Throw", true).canceled += context => _throw?.Release();
+            _gameplay.FindAction("Throw", true).canceled += context =>
+            {
+                // Disabling the map also sends canceled for a held button.
+                if (isActiveAndEnabled) _throw?.Release();
+            };
             _gameplay.FindAction("Lift", true).performed += context =>
             {
                 if (_throw != null && _throw.Charging) { _throw.Cancel(); return; }

@@ -21,6 +21,9 @@ namespace MMF.Truck
         /// <summary>Raised after damage changes health, with current and maximum health.</summary>
         public event Action<int, int> Changed;
 
+        /// <summary>Raised once when damage reduces health to zero.</summary>
+        public event Action Destroyed;
+
         private void Awake()
         {
             Max = _tuning.MaxHealth;
@@ -32,7 +35,9 @@ namespace MMF.Truck
         {
             if (!CanBeHit || damage <= 0) return;
             Current = Mathf.Max(0, Current - damage);
+            bool destroyed = Current == 0;
             Changed?.Invoke(Current, Max);
+            if (destroyed) Destroyed?.Invoke();
         }
     }
 }

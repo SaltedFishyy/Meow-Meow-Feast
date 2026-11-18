@@ -1,0 +1,8 @@
+﻿{
+    "autoReferenced":  false,
+    "rootNamespace":  "AbilityStudio.Runtime",
+    "name":  "AbilityStudio.Runtime",
+    "references":  [
+                       "AbilityStudio.Model"
+                   ]
+}

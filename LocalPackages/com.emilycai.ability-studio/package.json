@@ -1,0 +1,11 @@
+{
+  "name": "com.emilycai.ability-studio",
+  "version": "0.3.2-2d.1",
+  "displayName": "Ability Studio (MMF 2D)",
+  "description": "Designer-oriented skill assembly with a shared playable runtime.",
+  "unity": "6000.6",
+  "unityRelease": "4f1",
+  "dependencies": {
+    "com.unity.inputsystem": "1.20.0"
+  }
+}

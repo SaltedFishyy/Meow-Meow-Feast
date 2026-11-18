@@ -1,0 +1,7 @@
+{
+  "name": "AbilityStudio.Editor.Board.GraphView",
+  "rootNamespace": "AbilityStudio.Editor.Board.GraphView",
+  "references": ["AbilityStudio.Model", "AbilityStudio.Editor"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}

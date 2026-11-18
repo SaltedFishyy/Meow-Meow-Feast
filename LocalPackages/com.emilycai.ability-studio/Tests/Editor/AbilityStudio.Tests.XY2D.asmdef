@@ -1,0 +1,6 @@
+{
+  "name": "AbilityStudio.Tests.XY2D",
+  "references": ["AbilityStudio.Model", "AbilityStudio.Runtime", "AbilityStudio.Playground", "AbilityStudio.Editor", "Unity.InputSystem"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

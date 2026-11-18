@@ -1,9 +1,9 @@
 {
   "dependencies": {
     "com.emilycai.ability-studio": {
-      "version": "file:../LocalPackages/com.emilycai.ability-studio-0.3.0.tgz",
+      "version": "file:../LocalPackages/com.emilycai.ability-studio",
       "depth": 0,
-      "source": "local-tarball",
+      "source": "local",
       "dependencies": {
         "com.unity.inputsystem": "1.20.0"
       }

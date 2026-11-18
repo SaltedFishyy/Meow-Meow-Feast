@@ -58,7 +58,7 @@ namespace MMF.Combat
             bool chasingPlayer = _targeting.IsChasingPlayer;
             bool truckInRange = !chasingPlayer && TruckInRange(position);
             if (_truckRoutine != null)
-                _truckRoutine.Step(chasingPlayer, truckInRange, Time.fixedDeltaTime);
+                _truckRoutine.Step(chasingPlayer, truckInRange, _lungeRemaining > 0f, position, Time.fixedDeltaTime);
 
             if (_windingUp && _attackingTruck && (chasingPlayer || !_truckHealth.CanBeHit))
                 _windingUp = false;
@@ -73,6 +73,8 @@ namespace MMF.Combat
 
             if (_lungeRemaining > 0f)
                 return StepLunge(hasExternalMotion, out displacement);
+
+            if (_truckRoutine != null && _truckRoutine.IsWandering) return false;
 
             if (truckInRange && _truckRoutine != null && !_truckRoutine.CanAttackTruck)
                 return true;

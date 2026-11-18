@@ -116,7 +116,7 @@ namespace MMF.Editor
             SetReference(flash, "_attack", attack);
             SetReference(flash, "_meshFilter", flashFilter);
             SetReference(flash, "_meshRenderer", flashRenderer);
-            CreateMonsters(sprite, truck, backpack);
+            CreateMonsters(sprite, truck, backpack, arena);
             FollowCamera follow = camera.gameObject.AddComponent<FollowCamera>();
             SetReference(follow, "_tuning", LoadCameraTuning());
             SetReference(follow, "_target", backpack.transform);
@@ -184,7 +184,7 @@ namespace MMF.Editor
             truck.RefreshLayout();
             return truck;
         }
-        private static void CreateMonsters(Sprite sprite, TruckArea truck, PlayerBackpack player)
+        private static void CreateMonsters(Sprite sprite, TruckArea truck, PlayerBackpack player, MapBounds arena)
         {
             EnsureFolder(Root + "/Data/Monsters");
             string path = Root + "/Data/Monsters/CursedDumpling.asset";
@@ -255,6 +255,9 @@ namespace MMF.Editor
                 SetReference(attack, "_truckHealth", truckHealth);
                 MonsterTruckRoutine truckRoutine = visual.gameObject.AddComponent<MonsterTruckRoutine>();
                 SetReference(truckRoutine, "_definition", definition);
+                SetReference(truckRoutine, "_truck", truck);
+                SetReference(truckRoutine, "_map", arena);
+                SetReference(targeting, "_truckRoutine", truckRoutine);
                 SetReference(attack, "_truckRoutine", truckRoutine);
                 MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
                 SetReference(dropsComponent, "_dropTable", drops);

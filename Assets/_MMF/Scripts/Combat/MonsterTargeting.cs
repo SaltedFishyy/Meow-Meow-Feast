@@ -12,6 +12,7 @@ namespace MMF.Combat
         [SerializeField] private Transform _player = null;
         [SerializeField] private PlayerHealth _playerHealth = null;
         [SerializeField] private TruckArea _truck = null;
+        [SerializeField] private MonsterTruckRoutine _truckRoutine = null;
         private bool _chasing;
         private bool _front;
         private const float WallClearance = 0.1f;
@@ -38,6 +39,8 @@ namespace MMF.Combat
             float padding = _definition.Size * 0.5f + WallClearance;
             Vector2 destination = _chasing ? playerPosition :
                 _truck.EndPoint(_front) + Vector2.right * (_front ? padding : -padding);
+            if (!_chasing && _truckRoutine != null && _truckRoutine.IsWandering)
+                destination = _truckRoutine.WanderTarget;
             return NextWaypoint(position, destination, _truck.ExteriorRect, _definition.Size * 0.5f);
         }
 

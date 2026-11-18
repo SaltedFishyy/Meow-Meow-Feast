@@ -28,6 +28,10 @@ namespace MMF.Data
         [SerializeField, TuningLabel("打车每下伤害"), Min(0)] private int _truckDamage = 1;
         [SerializeField, TuningLabel("车边最少等几秒"), Min(0f)] private float _truckWaitMin = 8f;
         [SerializeField, TuningLabel("车边最多等几秒"), Min(0f)] private float _truckWaitMax = 12f;
+        [SerializeField, TuningLabel("走动最少几秒"), Min(0f)] private float _wanderMin = 8f;
+        [SerializeField, TuningLabel("走动最多几秒"), Min(0f)] private float _wanderMax = 12f;
+        [SerializeField, TuningLabel("走动离车最近几格"), Min(0f)] private float _wanderNear = 3f;
+        [SerializeField, TuningLabel("走动离车最远几格"), Min(0f)] private float _wanderFar = 6f;
 
         public float AttackRange => _attackRange;
         public float AttackWindUp => _attackWindUp;
@@ -42,6 +46,18 @@ namespace MMF.Data
 
         /// <summary>Maximum time spent waiting in truck attack range.</summary>
         public float TruckWaitMax => _truckWaitMax;
+
+        /// <summary>Minimum duration sampled for each wander.</summary>
+        public float WanderMin => _wanderMin;
+
+        /// <summary>Maximum duration sampled for each wander.</summary>
+        public float WanderMax => _wanderMax;
+
+        /// <summary>Minimum distance from the exterior wall for wander targets.</summary>
+        public float WanderNear => _wanderNear;
+
+        /// <summary>Maximum distance from the exterior wall for wander targets.</summary>
+        public float WanderFar => _wanderFar;
 
         public float AvoidanceDuration => _avoidanceDuration;
         public float ChaseStartDistance => _chaseStartDistance;

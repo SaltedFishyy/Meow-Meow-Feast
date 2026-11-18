@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-11-18 · T013 · "武器工坊"窗口：调队友技能工坊做的武器
+
+**做了什么**（Codex 编写，Claude 审查，一次通过）
+- 新的独立编辑器程序集 `Assets/_MMF/Editor/WeaponWorkshop/`（`MMF.Editor.WeaponWorkshop.asmdef`，只引用 EC 的 `AbilityStudio.Model`、`AbilityStudio.Editor`）。EC 的包以后改名或拿掉，只影响这个文件夹。
+- `WeaponWorkshopWindow`：菜单 `MMF → 武器工坊`。左边列出 `Assets/_MMF/Data/Weapons/`（含子文件夹）里所有 `SkillDefinition`，按路径排序，项目里增删武器自动刷新；右边用 `InspectorElement` 嵌入 EC 工具自带的检查器（参数、"打开技能画板"、"保存技能"都是它的）；顶部"试玩预览"（`PlaygroundWindow.OpenSkill`）、"在 Project 里选中"。上次选中的武器按 GUID 记在 `EditorPrefs`。没有"恢复默认值"。
+- 没改 EC 的包、`TuningWindow.cs`、`MMF.Editor.asmdef`；平底锅仍在数值窗口"武器"组。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；93 个测试全部通过（这次不碰场景）。
+- 打开窗口：列表只有 `Tongs`（不列 `_Sandbox` 的钩爪、不列平底锅），自动选中，右边 14 个数值框；按钮有试玩预览 / 在 Project 里选中 / 打开技能画板 / 保存技能等。把冷却改成 2.5 → 资产里的值跟着变。复制一份武器 → 列表多一项；删掉 → 少一项。
+- **和数值窗口不一样**：这里改了数值**不会自动存盘**（EC 工具的做法），要点检查器最下面的"保存技能"，或 `Ctrl+S` / 保存项目。测试时复制资产让 Unity 把改过的冷却存进了 `Tongs.asset`，已用 git 还原成 EC 的原版。
+
+---
+
 ## 2026-11-17 · T012b · 出车后镜头固定在场地中间（可开关，试验）
 
 > 用户的试验，**GDD 暂时不写**，以任务说明书为准。

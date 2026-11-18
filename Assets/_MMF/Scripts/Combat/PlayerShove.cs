@@ -13,6 +13,7 @@ namespace MMF.Combat
         [SerializeField] private PlayerMovement _movement;
         [SerializeField] private Rigidbody2D _body;
         [SerializeField] private PlayerTuning _tuning;
+        [SerializeField] private PlayerHitReaction _hitReaction;
         [SerializeField, Min(0f)] private float _detectionDistance = 0.05f;
 
         private readonly RaycastHit2D[] _hits = new RaycastHit2D[32];
@@ -28,6 +29,7 @@ namespace MMF.Combat
         private void FixedUpdate()
         {
             _movement.SetSpeedMultiplier(1f);
+            if (_hitReaction != null && _hitReaction.PassesThroughMonsters) return;
             Vector2 intent = _movement.MoveDirection;
             if (intent.sqrMagnitude <= 0f) return;
 

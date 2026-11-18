@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MMF.Data;
 using UnityEngine;
 
@@ -23,6 +24,10 @@ namespace MMF.Combat
         private bool _shoved;
         private Vector2 _avoidanceDirection;
         private float _avoidanceRemaining;
+        private static readonly HashSet<Collider2D> _activeColliders = new();
+
+        internal static HashSet<Collider2D> ActiveColliders => _activeColliders;
+
         private const float ContactGap = 0.002f;
 
         /// <summary>Raised once after hiding a monster whose health reached zero.</summary>
@@ -45,6 +50,7 @@ namespace MMF.Combat
 
         private void OnEnable()
         {
+            _activeColliders.Add(_collider);
             _health = _definition.Health;
             _flashRemaining = 0f;
             _knockback = Vector2.zero;
@@ -54,6 +60,13 @@ namespace MMF.Combat
             transform.localScale = Vector3.one * _definition.Size;
             _renderer.color = _definition.Color;
         }
+
+        private void OnDisable()
+        {
+            _activeColliders.Remove(_collider);
+        }
+
+        private bool IgnoresContact(Collider2D other) => Physics2D.GetIgnoreCollision(_collider, other);
 
         private void Update()
         {
@@ -90,7 +103,7 @@ namespace MMF.Combat
             Vector2 direction = displacement / distance;
             int count = _body.Cast(direction, _filter, _hits, distance + ContactGap);
             for (int i = 0; i < count; i++)
-                if (Vector2.Dot(_hits[i].normal, direction) < 0f)
+                if (!IgnoresContact(_hits[i].collider) && Vector2.Dot(_hits[i].normal, direction) < 0f)
                     distance = Mathf.Min(distance, Mathf.Max(0f, _hits[i].distance - ContactGap));
             if (sliding && TryAvoidMonster(count, direction, distance)) return;
             Vector2 movement = direction * distance;
@@ -98,7 +111,7 @@ namespace MMF.Combat
             {
                 Vector2 remaining = displacement - movement;
                 for (int i = 0; i < count; i++)
-                    if (_hits[i].distance <= distance + ContactGap && Vector2.Dot(remaining, _hits[i].normal) < 0f)
+                    if (!IgnoresContact(_hits[i].collider) && _hits[i].distance <= distance + ContactGap && Vector2.Dot(remaining, _hits[i].normal) < 0f)
                         remaining -= Vector2.Dot(remaining, _hits[i].normal) * _hits[i].normal;
                 float slideDistance = remaining.magnitude;
                 if (slideDistance > 0f)
@@ -108,7 +121,8 @@ namespace MMF.Combat
                         _collider.bounds.size, _body.rotation, slideDirection, _filter, _hits,
                         slideDistance + ContactGap);
                     for (int i = 0; i < slideCount; i++)
-                        if (_hits[i].rigidbody != _body && Vector2.Dot(_hits[i].normal, slideDirection) < 0f)
+                        if (_hits[i].rigidbody != _body && !IgnoresContact(_hits[i].collider) &&
+                            Vector2.Dot(_hits[i].normal, slideDirection) < 0f)
                             slideDistance = Mathf.Min(slideDistance, Mathf.Max(0f, _hits[i].distance - ContactGap));
                     if (TryAvoidMonster(slideCount, slideDirection, slideDistance)) return;
                     movement += slideDirection * slideDistance;
@@ -166,7 +180,8 @@ namespace MMF.Combat
             for (int i = 0; i < count; i++)
             {
                 RaycastHit2D hit = _hits[i];
-                if (hit.rigidbody == null || hit.rigidbody.bodyType != RigidbodyType2D.Dynamic) continue;
+                if (hit.rigidbody == null || hit.rigidbody.bodyType != RigidbodyType2D.Dynamic ||
+                    IgnoresContact(hit.collider)) continue;
                 if (hit.distance <= 0f)
                 {
                     // A player can enter the padding: still allow the monster to move away.
@@ -187,7 +202,7 @@ namespace MMF.Combat
             blocker = null;
             for (int i = 0; i < count; i++)
             {
-                if (_hits[i].rigidbody == _body || _hits[i].distance > distance + ContactGap ||
+                if (_hits[i].rigidbody == _body || IgnoresContact(_hits[i].collider) || _hits[i].distance > distance + ContactGap ||
                     Vector2.Dot(_hits[i].normal, direction) >= 0f) continue;
                 if (!_hits[i].collider.TryGetComponent<Monster>(out Monster monster)) return false;
                 blocker = monster;
@@ -200,7 +215,7 @@ namespace MMF.Combat
             if (direction.sqrMagnitude <= 0f || distance <= 0f) return 0f;
             int count = _body.Cast(direction, _filter, _hits, distance + ContactGap);
             for (int i = 0; i < count; i++)
-                if (Vector2.Dot(_hits[i].normal, direction) < 0f)
+                if (!IgnoresContact(_hits[i].collider) && Vector2.Dot(_hits[i].normal, direction) < 0f)
                     distance = Mathf.Min(distance, Mathf.Max(0f, _hits[i].distance - ContactGap));
             return distance;
         }

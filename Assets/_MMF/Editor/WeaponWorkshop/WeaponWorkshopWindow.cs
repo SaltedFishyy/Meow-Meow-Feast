@@ -13,6 +13,7 @@ namespace MMF.Editor.WeaponWorkshop
     {
         private const string WeaponFolder = "Assets/_MMF/Data/Weapons";
         private const string WindowTitle = "武器工坊";
+        private const double AutoSaveIntervalSeconds = 0.3;
 
         private readonly System.Collections.Generic.List<SkillDefinition> _weapons = new();
         private ListView _weaponList;
@@ -20,6 +21,7 @@ namespace MMF.Editor.WeaponWorkshop
         private Toolbar _toolbar;
         private ScrollView _inspector;
         private SkillDefinition _selectedWeapon;
+        private double _nextAutoSaveTime;
 
         private static string SelectionKey => "MMF.WeaponWorkshop.Selection:" + Application.dataPath;
 
@@ -29,12 +31,48 @@ namespace MMF.Editor.WeaponWorkshop
             GetWindow<WeaponWorkshopWindow>(WindowTitle);
         }
 
+        private void OnEnable()
+        {
+            _nextAutoSaveTime = EditorApplication.timeSinceStartup + AutoSaveIntervalSeconds;
+            EditorApplication.update += CheckAutoSave;
+        }
+
+        private void OnDisable()
+        {
+            EditorApplication.update -= CheckAutoSave;
+            SaveDirtyWeapons();
+        }
+
+        private void CheckAutoSave()
+        {
+            double now = EditorApplication.timeSinceStartup;
+            if (now < _nextAutoSaveTime)
+                return;
+
+            _nextAutoSaveTime = now + AutoSaveIntervalSeconds;
+            SaveDirtyWeapons();
+        }
+
+        private void SaveDirtyWeapons()
+        {
+            foreach (var weapon in _weapons)
+            {
+                if (weapon != null && EditorUtility.IsDirty(weapon)
+                    && AssetDatabase.GetAssetPath(weapon).StartsWith(WeaponFolder + "/", StringComparison.Ordinal))
+                    AssetDatabase.SaveAssetIfDirty(weapon);
+            }
+        }
+
         private void CreateGUI()
         {
             rootVisualElement.Clear();
             _toolbar = new Toolbar();
             _toolbar.Add(new ToolbarButton(PreviewWeapon) { text = "试玩预览" });
             _toolbar.Add(new ToolbarButton(PingWeapon) { text = "在 Project 里选中" });
+            var autoSaveLabel = new Label("改了自动保存") { pickingMode = PickingMode.Ignore };
+            autoSaveLabel.style.fontSize = 11;
+            autoSaveLabel.style.alignSelf = Align.Center;
+            _toolbar.Add(autoSaveLabel);
             rootVisualElement.Add(_toolbar);
 
             var split = new TwoPaneSplitView(0, 180, TwoPaneSplitViewOrientation.Horizontal);
@@ -103,6 +141,7 @@ namespace MMF.Editor.WeaponWorkshop
             if (ReferenceEquals(_selectedWeapon, weapon))
                 return;
 
+            SaveDirtyWeapons();
             _selectedWeapon = weapon;
             _inspector.Clear();
             if (weapon == null)

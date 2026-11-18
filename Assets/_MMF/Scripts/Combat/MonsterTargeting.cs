@@ -16,6 +16,12 @@ namespace MMF.Combat
         private bool _front;
         private const float WallClearance = 0.1f;
 
+        /// <summary>Whether the latest targeting step selected the player.</summary>
+        public bool IsChasingPlayer => _chasing;
+
+        /// <summary>Whether this monster is assigned to the front (right) end.</summary>
+        public bool TargetsFront => _front;
+
         private void OnEnable()
         {
             _chasing = false;

@@ -142,6 +142,8 @@ namespace MMF.Editor
         private static TruckArea CreateTruck(Sprite sprite)
         {
             TruckArea truck = new GameObject("Truck").AddComponent<TruckArea>();
+            TruckHealth health = truck.gameObject.AddComponent<TruckHealth>();
+            SetReference(health, "_tuning", LoadTruckTuning());
             SpriteRenderer floor = CreateSprite("Truck Floor", sprite, new Color(0.7f, 0.67f, 0.52f), 0);
             floor.transform.SetParent(truck.transform, false);
             SetReference(truck, "_floor", floor.transform);
@@ -192,6 +194,7 @@ namespace MMF.Editor
             players.arraySize = playerColliders.Length;
             for (int i = 0; i < playerColliders.Length; i++)
                 players.GetArrayElementAtIndex(i).objectReferenceValue = playerColliders[i];
+            TruckHealth truckHealth = truck.GetComponent<TruckHealth>();
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
             Collider2D playerCollider = player.GetComponent<Collider2D>();
             Vector2[] positions = { new Vector2(0f, 10f), new Vector2(-12f, 5f),
@@ -226,6 +229,7 @@ namespace MMF.Editor
                 SetReference(attack, "_player", playerHealth);
                 SetReference(attack, "_playerCollider", playerCollider);
                 SetReference(attack, "_truck", truck);
+                SetReference(attack, "_truckHealth", truckHealth);
                 MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
                 SetReference(dropsComponent, "_dropTable", drops);
                 SetReference(dropsComponent, "_tuning", backpackTuning);
@@ -412,6 +416,17 @@ namespace MMF.Editor
             PlayerHealthTuning tuning = AssetDatabase.LoadAssetAtPath<PlayerHealthTuning>(path);
             if (tuning != null) return tuning;
             tuning = ScriptableObject.CreateInstance<PlayerHealthTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
+        }
+
+        private static TruckTuning LoadTruckTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/TruckTuning.asset";
+            TruckTuning tuning = AssetDatabase.LoadAssetAtPath<TruckTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<TruckTuning>();
             AssetDatabase.CreateAsset(tuning, path);
             return tuning;
         }

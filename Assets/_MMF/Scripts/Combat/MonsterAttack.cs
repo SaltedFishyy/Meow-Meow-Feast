@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace MMF.Combat
 {
-    /// <summary>Runs the wind-up, lunge and cooldown of a monster's player attack.</summary>
+    /// <summary>Runs the wind-up, lunge and cooldown of a monster's attack.</summary>
     [RequireComponent(typeof(Monster))]
     public sealed class MonsterAttack : MonoBehaviour
     {
@@ -13,6 +13,7 @@ namespace MMF.Combat
         [SerializeField] private PlayerHealth _player = null;
         [SerializeField] private Collider2D _playerCollider = null;
         [SerializeField] private TruckArea _truck = null;
+        [SerializeField] private TruckHealth _truckHealth = null;
         [SerializeField] private Color _warningColor = new Color(1f, 0.45f, 0.15f);
         [SerializeField, Min(0.01f)] private float _warningFlashInterval = 0.08f;
         [SerializeField, Min(0.01f)] private float _lungeSpeed = 14f;
@@ -21,7 +22,8 @@ namespace MMF.Combat
         private Collider2D _collider;
         private Rigidbody2D _playerBody;
         private SpriteRenderer _renderer;
-        private bool _chasing;
+        private MonsterTargeting _targeting;
+        private bool _attackingTruck;
         private bool _windingUp;
         private bool _warningApplied;
         private float _windUpElapsed;
@@ -32,6 +34,7 @@ namespace MMF.Combat
         private void Awake()
         {
             _monster = GetComponent<Monster>();
+            _targeting = GetComponent<MonsterTargeting>();
             _collider = GetComponent<Collider2D>();
             _renderer = GetComponent<SpriteRenderer>();
             _playerBody = _playerCollider.attachedRigidbody;
@@ -39,7 +42,7 @@ namespace MMF.Combat
 
         private void OnEnable()
         {
-            _chasing = false;
+            _attackingTruck = false;
             _windingUp = false;
             _windUpElapsed = 0f;
             _lastLaunchTime = float.NegativeInfinity;
@@ -51,29 +54,31 @@ namespace MMF.Combat
         internal bool Step(Vector2 position, bool hasExternalMotion, out Vector2 displacement)
         {
             displacement = Vector2.zero;
-            Vector2 playerPosition = _player.transform.position;
-            bool playerInside = _truck.Contains(playerPosition);
-            _chasing = MonsterTargeting.ShouldChase(playerInside, Vector2.Distance(position, playerPosition),
-                _chasing, _definition.ChaseStartDistance, _definition.ChaseStopDistance);
+            if (_windingUp && _attackingTruck && !_truckHealth.CanBeHit)
+                _windingUp = false;
 
             if (_windingUp)
             {
                 _windUpElapsed += Time.fixedDeltaTime;
                 if (_windUpElapsed < _definition.AttackWindUp) return true;
-                Launch(position, playerInside);
+                Launch(position);
                 return StepLunge(hasExternalMotion, out displacement);
             }
 
             if (_lungeRemaining > 0f)
                 return StepLunge(hasExternalMotion, out displacement);
 
-            if (!_chasing || Time.fixedTime - _lastLaunchTime < _definition.AttackCooldown || !PlayerInRange())
-                return false;
+            if (Time.fixedTime - _lastLaunchTime < _definition.AttackCooldown)
+                return _attackingTruck && _targeting.IsChasingPlayer;
 
+            bool attackTruck = !_targeting.IsChasingPlayer;
+            if (attackTruck ? !TruckInRange(position) : !PlayerInRange()) return false;
+
+            _attackingTruck = attackTruck;
             _windingUp = true;
             _windUpElapsed = 0f;
             if (_definition.AttackWindUp > 0f) return true;
-            Launch(position, playerInside);
+            Launch(position);
             return StepLunge(hasExternalMotion, out displacement);
         }
 
@@ -86,14 +91,39 @@ namespace MMF.Combat
             return separation.isValid && separation.distance <= _definition.AttackRange;
         }
 
-        private void Launch(Vector2 position, bool playerInside)
+        private bool TruckInRange(Vector2 position)
+        {
+            if (_truckHealth == null || !_truckHealth.CanBeHit) return false;
+
+            Rect exterior = _truck.ExteriorRect;
+            if (position.y < exterior.yMin || position.y > exterior.yMax) return false;
+
+            Bounds monsterBounds = _collider.bounds;
+            if (_targeting.TargetsFront)
+                return position.x >= exterior.xMax &&
+                    monsterBounds.min.x - exterior.xMax <= _definition.AttackRange;
+
+            return position.x <= exterior.xMin &&
+                exterior.xMin - monsterBounds.max.x <= _definition.AttackRange;
+        }
+
+        private void Launch(Vector2 position)
         {
             _windingUp = false;
             _lastLaunchTime = Time.fixedTime;
+            if (_attackingTruck)
+            {
+                _lungeDirection = _targeting.TargetsFront ? Vector2.left : Vector2.right;
+                _lungeRemaining = _definition.AttackRange;
+                if (TruckInRange(position)) _truckHealth.TakeHit(_definition.TruckDamage);
+                return;
+            }
+
             Vector2 playerPosition = _playerBody != null ? _playerBody.position : (Vector2)_player.transform.position;
             _lungeDirection = (playerPosition - position).normalized;
             _lungeRemaining = _lungeDirection == Vector2.zero ? 0f : _definition.AttackRange;
-            if (!playerInside && PlayerInRange()) _player.TakeHit(_definition.AttackDamage, _lungeDirection);
+            if (!_truck.Contains(_player.transform.position) && PlayerInRange())
+                _player.TakeHit(_definition.AttackDamage, _lungeDirection);
         }
 
         private bool StepLunge(bool hasExternalMotion, out Vector2 displacement)

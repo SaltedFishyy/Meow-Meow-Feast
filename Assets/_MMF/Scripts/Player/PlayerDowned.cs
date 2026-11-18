@@ -23,6 +23,11 @@ namespace MMF.Player
         private bool _inputWasEnabled;
         private bool _backpackWasEnabled;
 
+        /// <summary>Seconds remaining on the active revival timer.</summary>
+        public double RemainingSeconds => _health != null && _health.IsDown
+            ? System.Math.Max(0d, _reviveAt - Time.timeAsDouble)
+            : 0d;
+
         private void Awake()
         {
             _health = GetComponent<PlayerHealth>();

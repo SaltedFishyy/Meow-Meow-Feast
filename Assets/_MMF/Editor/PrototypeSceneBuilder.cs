@@ -304,8 +304,10 @@ namespace MMF.Editor
 
         private static PlayerBackpack CreatePlayer(Sprite sprite, InputActionAsset controls)
         {
-            GameObject player = CreateSprite("Player", sprite,
-                new Color(1f, 0.69f, 0.24f), 2).gameObject;
+            GameObject player = new GameObject("Player");
+            SpriteRenderer playerVisual = CreateSprite("Player Visual", sprite,
+                new Color(1f, 0.69f, 0.24f), 2);
+            playerVisual.transform.SetParent(player.transform, false);
             Rigidbody2D body = player.AddComponent<Rigidbody2D>();
             body.gravityScale = 0f;
             body.constraints = RigidbodyConstraints2D.FreezeRotation;
@@ -325,7 +327,7 @@ namespace MMF.Editor
             SetReference(hitReaction, "_movement", movement);
             SetReference(hitReaction, "_body", body);
             SetReference(hitReaction, "_collider", playerCollider);
-            SetReference(hitReaction, "_renderer", player.GetComponent<SpriteRenderer>());
+            SetReference(hitReaction, "_renderer", playerVisual);
             PlayerShove shove = player.AddComponent<PlayerShove>();
             SetReference(shove, "_hitReaction", hitReaction);
             SetReference(shove, "_tuning", tuning);
@@ -363,6 +365,25 @@ namespace MMF.Editor
             readerData.ApplyModifiedPropertiesWithoutUndo();
             PlayerDowned downed = player.AddComponent<PlayerDowned>();
             SetReference(downed, "_tuning", healthTuning);
+
+            TextMesh countdown = new GameObject("Revive Countdown").AddComponent<TextMesh>();
+            countdown.transform.SetParent(player.transform, false);
+            countdown.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            MeshRenderer countdownRenderer = countdown.GetComponent<MeshRenderer>();
+            countdownRenderer.sharedMaterial = countdown.font.material;
+            countdownRenderer.sortingOrder = 6;
+            countdown.anchor = TextAnchor.MiddleCenter;
+            countdown.alignment = TextAlignment.Center;
+            countdown.color = Color.white;
+            countdown.characterSize = 0.1f;
+            countdown.gameObject.SetActive(false);
+
+            PlayerDownedView downedView = player.AddComponent<PlayerDownedView>();
+            SetReference(downedView, "_health", health);
+            SetReference(downedView, "_downed", downed);
+            SetReference(downedView, "_visual", playerVisual);
+            SetReference(downedView, "_countdown", countdown);
+            SetReference(downedView, "_heldIcon", icon.gameObject);
             return backpack;
         }
 

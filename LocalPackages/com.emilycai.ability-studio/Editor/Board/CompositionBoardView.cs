@@ -129,7 +129,7 @@ namespace AbilityStudio.Editor.Board.GraphView
         /// <inheritdoc/>
         public void Bind(SkillDefinition skill)
         {
-            SkillAssetCommands.MigrateEndpoint(skill);
+            SkillAssetCommands.UpgradeGraph(skill);
             _skill = skill; Rebuild(); _needsFrame = true;
             if (layout.width > 0 && layout.height > 0)
             {
@@ -146,7 +146,7 @@ namespace AbilityStudio.Editor.Board.GraphView
             changed |= SkillAssetCommands.RemoveModules(_skill, selection.OfType<Node>().Select(node => (string)node.userData));
             if (changed) Rebuild();
         }
-        private string Signature() => _skill == null ? "" : _skill.GetEntityId() + ":" + _skill.WeaponMode + ":" + _skill.IntegratedAttacks + ":" + string.Join(",",_skill.Attacks.Select(a=>a.ReleaseMode)) + ":" +
+        private string Signature() => _skill == null ? "" : _skill.GetEntityId() + ":" + _skill.HasCore + ":" + _skill.AttackMode + ":" + _skill.WeaponMode + ":" + _skill.IntegratedAttacks + ":" + string.Join(",",_skill.Attacks.Select(a=>a.ReleaseMode)) + ":" +
             string.Join(",", _skill.Modules.Select(m => m?.ModuleId)) + ":" +
             string.Join(",", _skill.Bindings.Select(b => b.SourceId + ">" + b.TargetId + ":" + b.Input + ":" + b.SourcePort));
         private void Rebuild()
@@ -156,7 +156,7 @@ namespace AbilityStudio.Editor.Board.GraphView
             foreach (var element in graphElements.ToList()) RemoveElement(element);
             _signature = Signature();
             if (_skill == null) return;
-            var core = AddModule("技能基础", SkillDefinition.CoreLayoutId, "", new Vector2(50, 140), new Color(0.12f, 0.46f, 0.56f));
+            var core = _skill.HasCore ? AddModule("技能基础", SkillDefinition.CoreLayoutId, "", new Vector2(50, 140), new Color(0.12f, 0.46f, 0.56f)) : null;
             var moduleNodes = new Dictionary<string, Node>();
             for (int i = 0; i < _skill.Positions.Count; i++)
             {
@@ -192,29 +192,23 @@ namespace AbilityStudio.Editor.Board.GraphView
                         "releases.Array.data[" + i + "]", new Vector2(-400, 100 + i * 220), new Color(.38f, .42f, .65f));
             var inputs = new Dictionary<(string, string), Port>();
             var outputs = new Dictionary<string, Port>();
-            if (_skill.WeaponMode)
+            if (core != null)
             {
-                foreach (var slot in new[] { BindingRules.Normal, BindingRules.Special })
+                foreach (var slot in _skill.DualAttack ? new[] { BindingRules.Normal, BindingRules.Special } : new[] { BindingRules.Normal })
                 {
-                    var port = core.InstantiatePort(Orientation.Horizontal,Direction.Output,Port.Capacity.Single,typeof(SkillKind));
-                    port.portName = slot == BindingRules.Normal ? "普通攻击" : "特殊攻击";
+                    var port = core.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Single, typeof(SkillKind));
+                    port.portName = !_skill.DualAttack ? "释放方式" : slot == BindingRules.Normal ? "普通攻击释放方式" : "特殊攻击释放方式";
                     port.name = SkillDefinition.CoreLayoutId + ":output:" + slot;
-                    port.userData = new BindingPort(SkillDefinition.CoreLayoutId,null,slot);
+                    port.userData = new BindingPort(SkillDefinition.CoreLayoutId, null, slot);
                     core.outputContainer.Add(port); outputs[SkillDefinition.CoreLayoutId + ":" + slot] = port;
                 }
+                var endpoint = core.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(Vector3));
+                endpoint.portName = "技能终点"; endpoint.name = SkillDefinition.CoreLayoutId + ":output";
+                endpoint.userData = new BindingPort(SkillDefinition.CoreLayoutId);
+                endpoint.tooltip = "按本次命中所属技能范围的最大施法距离和施法偏移计算。";
+                core.outputContainer.Add(endpoint); outputs[SkillDefinition.CoreLayoutId] = endpoint;
+                core.RefreshExpandedState(); core.RefreshPorts();
             }
-            else
-            {
-            var endpointPort = core.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(Vector3));
-            endpointPort.portName = "技能终点"; endpointPort.name = SkillDefinition.CoreLayoutId + ":output";
-            endpointPort.userData = new BindingPort(SkillDefinition.CoreLayoutId);
-            core.outputContainer.Add(endpointPort); outputs[SkillDefinition.CoreLayoutId] = endpointPort;
-            var releaseInput = core.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(ReleaseModule));
-            releaseInput.portName = "释放方式"; releaseInput.name = SkillDefinition.CoreLayoutId + ":release";
-            releaseInput.tooltip = "未连接时默认瞬发"; releaseInput.userData = new BindingPort(SkillDefinition.CoreLayoutId, BindingRules.Release);
-            core.inputContainer.Add(releaseInput); inputs[(SkillDefinition.CoreLayoutId, BindingRules.Release)] = releaseInput;
-            }
-            core.RefreshExpandedState(); core.RefreshPorts();
             foreach (var pair in moduleNodes)
             {
                 var id = pair.Key; var node = pair.Value; var module = _skill.FindModule(id);
@@ -234,13 +228,13 @@ namespace AbilityStudio.Editor.Board.GraphView
                 }
                 if (module is ReleaseModule)
                 {
-                    if (_skill.WeaponMode)
-                    {
-                        Input(BindingRules.Trigger,"攻击入口","未连接时不参与攻击",typeof(SkillKind));
-                        Output("释放",typeof(ReleaseModule));
-                        Output("技能终点",typeof(Vector3),":endpoint");
-                    }
-                    else Output("释放方式",typeof(ReleaseModule));
+                    Input(BindingRules.Trigger, "释放方式", "未连接时不参与攻击", typeof(SkillKind));
+                    Output("释放", typeof(ReleaseModule));
+                }
+                if (module is AttackModule)
+                {
+                    Input(BindingRules.Cast, "释放", "未连接时不参与攻击", typeof(ReleaseModule));
+                    Input(BindingRules.Origin, "释放位置", "玩家位置（叠加施法偏移）", typeof(Vector3));
                 }
                 if (module is ChargeRelease) Output("蓄力比例", typeof(float), ":charge");
                 if (!_skill.IntegratedAttacks && module is CircleAttack) Input(BindingRules.Charge, "半径比例", "接蓄力比例；未连接时使用固定半径", typeof(float));
@@ -254,9 +248,7 @@ namespace AbilityStudio.Editor.Board.GraphView
                 if (module is PositionModule) Output("位置", typeof(Vector3));
                 if (module is AttackModule)
                 {
-                    if (_skill.IntegratedAttacks) { Input(BindingRules.Trigger,"攻击按键","未连接时不参与攻击",typeof(SkillKind)); Output("技能终点",typeof(Vector3),":endpoint"); }
-                    else if (_skill.WeaponMode) Input(BindingRules.Cast,"释放","未连接时不参与攻击",typeof(ReleaseModule));
-                    Input(BindingRules.Position, module is CircleAttack ? "圆心" : "起点", module is CircleAttack ? "默认使用受最大施法距离限制的技能终点" : "默认施法起点", typeof(Vector3));
+                    if (module is CircleAttack) Input(BindingRules.Position, "圆心", "默认使用释放位置（未连接时为玩家位置）", typeof(Vector3));
                     Output("命中目标", typeof(EffectModule));
                 }
                 if (module is ProjectileAttack) Output("命中响应", typeof(HitResponseModule), ":response");
@@ -281,7 +273,7 @@ namespace AbilityStudio.Editor.Board.GraphView
         {
             var node = new Node { title = title, name = id, userData = id };
             node.capabilities = Capabilities.Movable | Capabilities.Selectable;
-            if (id != SkillDefinition.CoreLayoutId) node.capabilities |= Capabilities.Deletable;
+            node.capabilities |= Capabilities.Deletable;
             node.style.width = 350;
             node.style.backgroundColor = new Color(0.16f, 0.16f, 0.16f, 1f);
             node.titleContainer.style.backgroundColor = color;

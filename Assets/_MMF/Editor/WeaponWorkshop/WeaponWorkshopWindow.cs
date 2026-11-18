@@ -22,6 +22,10 @@ namespace MMF.Editor.WeaponWorkshop
         private ScrollView _inspector;
         private SkillDefinition _selectedWeapon;
         private double _nextAutoSaveTime;
+        private VisualElement _equipmentRow;
+        private Label _equipmentStatus;
+        private Button _equipmentButton;
+        private SkillDefinition _markedWeapon;
 
         private static string SelectionKey => "MMF.WeaponWorkshop.Selection:" + Application.dataPath;
 
@@ -51,6 +55,7 @@ namespace MMF.Editor.WeaponWorkshop
 
             _nextAutoSaveTime = now + AutoSaveIntervalSeconds;
             SaveDirtyWeapons();
+            RefreshEquipment();
         }
 
         private void SaveDirtyWeapons()
@@ -87,8 +92,17 @@ namespace MMF.Editor.WeaponWorkshop
             {
                 itemsSource = _weapons,
                 selectionType = SelectionType.Single,
-                makeItem = () => new Label(),
-                bindItem = (element, index) => ((Label)element).text = _weapons[index].name
+                makeItem = () =>
+                {
+                    var row = new VisualElement(); row.style.flexDirection = FlexDirection.Row;
+                    var title = new Label { name = "weapon-name" }; title.style.flexGrow = 1;
+                    row.Add(title); row.Add(new Label { name = "equipment-badge" }); return row;
+                },
+                bindItem = (element, index) =>
+                {
+                    element.Q<Label>("weapon-name").text = _weapons[index].name;
+                    element.Q<Label>("equipment-badge").text = WorkshopEquipment.IsEquipped(_weapons[index]) ? "P1 已装备" : "";
+                }
             };
             _weaponList.style.flexGrow = 1;
             _weaponList.selectionChanged += _ => ShowWeapon(_weaponList.selectedItem as SkillDefinition);
@@ -148,8 +162,43 @@ namespace MMF.Editor.WeaponWorkshop
                 return;
 
             EditorPrefs.SetString(SelectionKey, AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(weapon)));
-            _inspector.Add(new InspectorElement(weapon));
+            var inspector = new InspectorElement(weapon);
+            _inspector.Add(inspector);
+            _equipmentRow = new VisualElement { name = "main-scene-equipment" };
+            _equipmentRow.style.flexDirection = FlexDirection.Row;
+            _equipmentRow.style.alignItems = Align.Center;
+            _equipmentRow.style.marginBottom = 8;
+            _equipmentRow.Add(new Label("主场景装备") { style = { minWidth = 120 } });
+            _equipmentStatus = new Label(); _equipmentStatus.style.flexGrow = 1;
+            _equipmentRow.Add(_equipmentStatus);
+            _equipmentButton = new Button(() =>
+            {
+                WorkshopEquipment.Equip(WorkshopEquipment.IsEquipped(_selectedWeapon) ? null : _selectedWeapon);
+                RefreshEquipment();
+            }) { name = "equip-p1" };
+            _equipmentRow.Add(_equipmentButton);
+            // The shared inspector rebuilds after graph edits; reinsert directly after its name field.
+            inspector.schedule.Execute(() =>
+            {
+                var nameField = inspector.Q<TextField>("displayName");
+                if (nameField != null && _equipmentRow.parent != nameField.parent)
+                    nameField.parent.Insert(nameField.parent.IndexOf(nameField) + 1, _equipmentRow);
+            }).Every(100);
+            RefreshEquipment();
             _inspector.scrollOffset = Vector2.zero;
+        }
+
+        private void RefreshEquipment()
+        {
+            var loadout = WorkshopEquipment.Load();
+            if (loadout != null && EditorUtility.IsDirty(loadout)) AssetDatabase.SaveAssetIfDirty(loadout);
+            var current = loadout == null ? null : loadout.PlayerOne;
+            if (_markedWeapon != current) { _markedWeapon = current; _weaponList?.RefreshItems(); }
+            if (_equipmentStatus == null || _selectedWeapon == null) return;
+            bool equipped = current == _selectedWeapon;
+            _equipmentStatus.text = equipped ? "P1 已装备" : "未装备";
+            _equipmentButton.text = equipped ? "卸下" : "装备给 P1";
+            _equipmentButton.tooltip = equipped ? "卸下后恢复背包武器。" : "替换 P1 当前工坊武器，进入主场景后接管左键攻击。";
         }
 
         private void PreviewWeapon()

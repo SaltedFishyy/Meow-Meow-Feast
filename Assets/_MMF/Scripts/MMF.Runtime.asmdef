@@ -3,6 +3,9 @@
     "rootNamespace":  "MMF",
     "references":  [
                        "Unity.InputSystem",
-                       "UnityEngine.UI"
+                       "UnityEngine.UI",
+                       "AbilityStudio.Model",
+                       "AbilityStudio.Runtime",
+                       "AbilityStudio.Playground"
                    ]
 }

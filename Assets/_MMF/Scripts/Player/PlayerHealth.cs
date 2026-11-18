@@ -67,6 +67,15 @@ namespace MMF.Player
             Changed?.Invoke();
         }
 
+        /// <summary>Restores positive whole health points without reviving or granting immunity.</summary>
+        public void Heal(int amount)
+        {
+            if (IsDown || amount <= 0) return;
+            int restored = Mathf.Min(amount, Max - Current);
+            if (restored <= 0) return;
+            Current += restored; Changed?.Invoke();
+        }
+
         /// <summary>Restores the downed player to full health and starts immunity.</summary>
         public void Revive()
         {

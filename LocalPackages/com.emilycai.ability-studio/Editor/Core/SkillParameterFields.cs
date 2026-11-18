@@ -15,45 +15,20 @@ namespace AbilityStudio.Editor
             if (prefix == "")
             {
                 Text(root, skill, "displayName", "名称");
-                if (!skill.IntegratedAttacks)
-                {
-                    var merge = new Button(() => SkillAssetCommands.IntegrateAttacks(skill)) { text = "合并释放方式到攻击节点", tooltip = "每个攻击按键最多对应一个范围时可以合并；原连线和数值会保留。" };
-                    merge.SetEnabled(skill.CanIntegrate); root.Add(merge);
-                }
-                if (!skill.WeaponMode)
-                {
-                root.Add(new Button(() => SkillAssetCommands.EnableWeaponMode(skill)) { text = "转换为双攻击（保留当前攻击）" });
-                Choice(root, skill, "kind", "技能类型", "普通攻击", "特殊攻击");
-                Number(root, skill, "cooldown", "冷却时间（秒）");
-                Number(root, skill, "baseDamage", "基础伤害");
-                Number(root, skill, "distance", "最大施法距离（米）");
-                root.Q<FloatField>("distance").tooltip = "技能终点在范围内跟随鼠标，超出最大施法距离时停在边界。";
-                }
-                var field = new Vector2Field("施法偏移（XY）") { name = "castOriginOffset" };
-                field.SetValueWithoutNotify((Vector2)skill.CastOriginOffset);
-                field.RegisterValueChangedCallback(evt => SkillAssetCommands.SetParameter(skill, "castOriginOffset", new Vector3(evt.newValue.x, evt.newValue.y, 0)));
-                field.schedule.Execute(() => { if (skill != null && !IsEditing(field)) field.SetValueWithoutNotify((Vector2)skill.CastOriginOffset); }).Every(150);
-                root.Add(field);
+                Choice(root, skill, "attackMode", "攻击模式", "单攻击", "双攻击");
+                AttackKey(root, skill, "normalKey", skill.DualAttack ? "普通攻击键位" : "攻击键位");
+                if (skill.DualAttack) AttackKey(root, skill, "specialKey", "特殊攻击键位");
             }
             else
             {
                 using var serialized = new SerializedObject(skill);
                 var module = serialized.FindProperty(prefix)?.managedReferenceValue;
-                if (module is ReleaseModule && skill.WeaponMode)
+                if (module is AttackModule)
                 {
-                    Number(root, skill, prefix + ".baseDamage", "基础伤害");
-                    Number(root, skill, prefix + ".cooldown", "冷却时间（秒）");
-                    Number(root, skill, prefix + ".distance", "最大施法距离（米）");
-                }
-                if (module is AttackModule integrated && skill.IntegratedAttacks)
-                {
-                    root.Add(new Label("攻击设置"));
-                    Choice(root,skill,prefix+".releaseMode","释放方式","瞬发","蓄力");
-                    Number(root,skill,prefix+".settings.baseDamage","基础伤害");
-                    Number(root,skill,prefix+".settings.cooldown","冷却时间（秒）");
-                    Number(root,skill,prefix+".settings.distance","最大施法距离（米）");
-                    if (integrated.IsCharged) Number(root,skill,prefix+".settings.duration","蓄满时间（秒）");
-                    root.Add(new Label("范围设置"));
+                    Number(root, skill, prefix + ".settings.baseDamage", "基础伤害");
+                    Number(root, skill, prefix + ".settings.cooldown", "冷却时间（秒）");
+                    Number(root, skill, prefix + ".settings.distance", "最大施法距离（米）");
+                    Offset(root, skill, prefix + ".castOriginOffset");
                 }
                 bool inline = skill.IntegratedAttacks && module is AttackModule;
                 bool charging = inline && ((AttackModule)module).IsCharged;
@@ -97,6 +72,12 @@ namespace AbilityStudio.Editor
                     }
                 }
                 else if (module is ChargeRelease) Number(root, skill, prefix + ".duration", "最长蓄力时间（秒）");
+                else if (module is HealEffect)
+                {
+                    Choice(root, skill, prefix + ".mode", "治疗方式", "固定治疗量", "基础数值百分比", "目标最大生命值百分比");
+                    Number(root, skill, prefix + ".amount", "治疗量／百分比（%）");
+                    root.Add(new HelpBox("仅治疗范围内存活友方（含自身），不超过生命上限。百分比模式下 100 表示 100%。基础数值使用所属技能范围的基础伤害。", HelpBoxMessageType.Info));
+                }
                 else if (module is DamageEffect) Number(root, skill, prefix + ".multiplierPercent", "基础伤害倍率（%）");
                 else if (module is PierceResponse) Integer(root, skill, prefix + ".count", "穿透次数");
                 else if (module is ChainResponse)
@@ -110,7 +91,8 @@ namespace AbilityStudio.Editor
                 {
                     Number(root, skill, prefix + ".speed", "速度（米/秒）");
                     Number(root, skill, prefix + ".range", "距离（米）");
-                    Number(root, skill, prefix + ".size", "半径（米）");
+                    Number(root, skill, prefix + ".size", "投射物尺寸（半径，米）");
+                    root.Q<FloatField>(prefix + ".size").tooltip = "同时控制投射物外观和碰撞半径；例如 0.5 米对应直径 1 米。修改后对新发射的投射物生效。";
                 }
                 else if (module is ConeAttack)
                 {
@@ -151,6 +133,41 @@ namespace AbilityStudio.Editor
                 }
             }
             return root;
+        }
+        private static void AttackKey(VisualElement root, SkillDefinition skill, string path, string label)
+        {
+            var keys = (SkillInputKey[])System.Enum.GetValues(typeof(SkillInputKey));
+            var choices = new System.Collections.Generic.List<string>();
+            foreach (var key in keys) choices.Add(key == SkillInputKey.MouseLeft ? "鼠标左键" : key == SkillInputKey.MouseRight ? "鼠标右键" : key == SkillInputKey.MouseMiddle ? "鼠标中键" : key.ToString().Replace("Digit", ""));
+            var field = new DropdownField(label, choices, 0) { name = path };
+            void Refresh()
+            {
+                if (skill == null || IsEditing(field)) return;
+                using var so = new SerializedObject(skill);
+                field.SetValueWithoutNotify(choices[Mathf.Clamp(so.FindProperty(path).intValue, 0, choices.Count - 1)]);
+            }
+            Refresh(); field.RegisterValueChangedCallback(evt => SkillAssetCommands.SetParameter(skill, path, choices.IndexOf(evt.newValue)));
+            field.schedule.Execute(Refresh).Every(150); root.Add(field);
+        }
+        private static void Offset(VisualElement root, SkillDefinition skill, string path)
+        {
+            var field = new Vector2Field("施法偏移（XY）") { name = path };
+            using var initial = new SerializedObject(skill);
+            string ownerPath = path.Substring(0, path.LastIndexOf('.'));
+            string ownerId = (initial.FindProperty(ownerPath)?.managedReferenceValue as SkillModule)?.ModuleId;
+            bool SameOwner(SerializedObject so) => (so.FindProperty(ownerPath)?.managedReferenceValue as SkillModule)?.ModuleId == ownerId;
+            void Refresh()
+            {
+                if (skill == null || IsEditing(field)) return;
+                using var so = new SerializedObject(skill); if (SameOwner(so)) field.SetValueWithoutNotify(so.FindProperty(path).vector3Value);
+            }
+            Refresh(); field.RegisterValueChangedCallback(evt =>
+            {
+                if (skill == null) return;
+                using var so = new SerializedObject(skill);
+                if (SameOwner(so)) SkillAssetCommands.SetParameter(skill, path, new Vector3(evt.newValue.x, evt.newValue.y, 0));
+            });
+            field.schedule.Execute(Refresh).Every(150); root.Add(field);
         }
         private static void Asset(VisualElement root, SkillDefinition skill, string path, string label, System.Type type)
         {

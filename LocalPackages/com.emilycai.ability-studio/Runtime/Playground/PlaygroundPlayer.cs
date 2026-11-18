@@ -7,15 +7,33 @@ using System.Collections.Generic;
 namespace AbilityStudio.Playground
 {
     /// <summary>Optional WASD/mouse adapter; casting stays in SkillExecutor.</summary>
-    public sealed class PlaygroundPlayer : MonoBehaviour, ISkillCaster
+    public sealed class PlaygroundPlayer : MonoBehaviour, ISkillCaster, ISkillTarget, IHealable
     {
         [SerializeField] private SkillDefinition _skill;
         [SerializeField] private SkillRuntimeHost _runtime;
         [SerializeField] private Camera _camera;
         [SerializeField] private float _moveSpeed = 6;
+        private CombatTarget _health;
+        /// <summary>Shared health adapter for the caster.</summary>
+        public CombatTarget Health => _health;
+        /// <inheritdoc/>
+        public float Radius => _health == null ? 0 : _health.Radius;
+        /// <inheritdoc/>
+        public bool IsAlive => _health != null && _health.IsAlive;
+        /// <inheritdoc/>
+        public float MaxHp => _health == null ? 0 : _health.MaxHp;
+        /// <inheritdoc/>
+        public void ApplyHealing(float amount, ISkillCaster source) => _health?.ApplyHealing(amount, source);
+        private void Awake()
+        {
+            _health = GetComponent<CombatTarget>();
+            if (_health == null) _health = gameObject.AddComponent<CombatTarget>();
+            _health.SetTeam(Team);
+        }
         private Vector3 _aim = Vector3.up * 8;
         private SkillReleaseSession _release;
         private int _heldInput;
+        private SkillInputKey? _heldAuthoredKey;
         /// <summary>Most recently selected input branch, used for live previews.</summary>
         public SkillKind PreviewSlot { get; private set; }
         /// <summary>Release driving the current preview.</summary>
@@ -52,6 +70,7 @@ namespace AbilityStudio.Playground
         public void TickInput(float deltaTime)
         {
             if (_runtime == null || _camera == null || InputBlocked || EditorInputBlocked) { CancelCharge(); return; }
+            if (_skill != null && _skill.AreaGraph && !_skill.DualAttack) PreviewSlot = SkillKind.NormalAttack;
             TickCharge(deltaTime);
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
@@ -72,6 +91,33 @@ namespace AbilityStudio.Playground
             var direction = _aim - Position; direction.z = 0;
             if (direction.sqrMagnitude > 0.001f) transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
             if (PointerOverHud || keyboard?.escapeKey.wasPressedThisFrame == true) { CancelCharge(); return; }
+            if (_skill != null && _skill.AreaGraph)
+            {
+                if (IsCharging && _heldAuthoredKey.HasValue)
+                {
+                    var held = SkillInput.Control(_heldAuthoredKey.Value);
+                    if (held == null) CancelCharge();
+                    else if (!held.isPressed) ReleaseCast(_aim);
+                    return;
+                }
+                if (IsCharging && _heldInput == 3)
+                {
+                    if (keyboard == null) CancelCharge();
+                    else if (!keyboard.spaceKey.isPressed) ReleaseCast(_aim);
+                    return;
+                }
+                if (IsCharging) return;
+                var normal = SkillInput.Control(_skill.NormalKey);
+                var special = _skill.DualAttack ? SkillInput.Control(_skill.SpecialKey) : null;
+                if (normal?.wasPressedThisFrame == true || special?.wasPressedThisFrame == true)
+                {
+                    bool useSpecial = special?.wasPressedThisFrame == true;
+                    if (PressCast(_aim, useSpecial ? SkillKind.SpecialAttack : SkillKind.NormalAttack) == CastResult.Charging)
+                        _heldAuthoredKey = useSpecial ? _skill.SpecialKey : _skill.NormalKey;
+                }
+                else if (keyboard?.spaceKey.wasPressedThisFrame == true && PressCast(_aim, PreviewSlot) == CastResult.Charging) _heldInput = 3;
+                return;
+            }
             var button = _skill != null && _skill.Kind == SkillKind.SpecialAttack ? mouse?.rightButton : mouse?.leftButton;
             if (IsCharging && _heldInput != 0)
             {
@@ -112,10 +158,10 @@ namespace AbilityStudio.Playground
         /// <summary>Releases a held cast once, using the current mouse direction.</summary>
         public CastResult ReleaseCast(Vector3 aim)
         {
-            var result = _release?.Release(aim) ?? CastResult.Invalid; _heldInput = 0; CastAttempted?.Invoke(result); return result;
+            var result = _release?.Release(aim) ?? CastResult.Invalid; _heldInput = 0; _heldAuthoredKey = null; CastAttempted?.Invoke(result); return result;
         }
         /// <summary>Cancels without attacking or consuming cooldown.</summary>
-        public void CancelCharge() { _release?.Cancel(); _heldInput = 0; }
+        public void CancelCharge() { _release?.Cancel(); _heldInput = 0; _heldAuthoredKey = null; }
         private void OnDisable() => CancelCharge();
         private void OnApplicationFocus(bool focused) { if (!focused) CancelCharge(); }
         /// <summary>Casts through the shared runtime, also used by smoke tests.</summary>

@@ -13,13 +13,13 @@ namespace AbilityStudio.Editor
         public override VisualElement CreateInspectorGUI()
         {
             var skill = (SkillDefinition)target;
-            SkillAssetCommands.MigrateEndpoint(skill);
+            SkillAssetCommands.UpgradeGraph(skill);
             var root = new VisualElement();
             string signature = null;
             void RefreshComposition()
             {
                 if (skill == null) return;
-                var current = skill.WeaponMode + ":" + skill.IntegratedAttacks + ":" + string.Join(",",skill.Attacks.Select(a=>a.ReleaseMode)) + ":" + string.Join(",", skill.Releases.Select(r => r?.ModuleId)) + ":" + string.Join(",", skill.Responses.Select(r => r?.ModuleId)) + ":" + string.Join(",", skill.Positions.Select(a => a?.ModuleId)) + ":" + string.Join(",", skill.Attacks.Select(a => a?.ModuleId)) + ":" + string.Join(",", skill.Effects.Select(effect => effect?.ModuleId));
+                var current = skill.HasCore + ":" + skill.AttackMode + ":" + skill.WeaponMode + ":" + skill.IntegratedAttacks + ":" + string.Join(",",skill.Attacks.Select(a=>a.ReleaseMode)) + ":" + string.Join(",", skill.Releases.Select(r => r?.ModuleId)) + ":" + string.Join(",", skill.Responses.Select(r => r?.ModuleId)) + ":" + string.Join(",", skill.Positions.Select(a => a?.ModuleId)) + ":" + string.Join(",", skill.Attacks.Select(a => a?.ModuleId)) + ":" + string.Join(",", skill.Effects.Select(effect => effect?.ModuleId));
                 if (current == signature) return;
                 signature = current;
                 root.Clear();
@@ -34,6 +34,11 @@ namespace AbilityStudio.Editor
             root.Add(new Button(() => SkillBoardWindow.OpenSkill(skill)) { text = "打开技能画板" });
             root.Add(new HelpBox("运行时可修改参数，再次施法即可测试。点击“保存技能”保留修改。", HelpBoxMessageType.Info));
             root.Add(SkillParameterFields.Create(skill, ""));
+            if (!skill.HasCore)
+            {
+                root.Add(new HelpBox("技能基础已删除；其他节点和参数已保留，重新添加后才能释放。", HelpBoxMessageType.Warning));
+                root.Add(new Button(() => SkillAssetCommands.AddCore(skill)) { text = "添加技能基础" });
+            }
             for (int i = 0; i < skill.Positions.Count; i++)
             {
                 if (skill.Positions[i] == null) continue;

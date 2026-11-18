@@ -1,0 +1,12 @@
+{
+    "name": "MMF.Editor.WeaponWorkshop",
+    "rootNamespace": "MMF.Editor.WeaponWorkshop",
+    "references": [
+        "AbilityStudio.Model",
+        "AbilityStudio.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "autoReferenced": false
+}

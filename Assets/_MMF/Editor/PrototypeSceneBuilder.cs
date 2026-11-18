@@ -79,6 +79,7 @@ namespace MMF.Editor
 
             MapBounds arena = bounds.AddComponent<MapBounds>();
             SerializedObject arenaData = new SerializedObject(arena);
+            arenaData.FindProperty("_tuning").objectReferenceValue = LoadMapTuning();
             arenaData.FindProperty("_camera").objectReferenceValue = camera;
             arenaData.FindProperty("_ground").objectReferenceValue = ground.transform;
             arenaData.FindProperty("_left").objectReferenceValue = left;
@@ -220,8 +221,8 @@ namespace MMF.Editor
             TruckHealth truckHealth = truck.GetComponent<TruckHealth>();
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
             Collider2D playerCollider = player.GetComponent<Collider2D>();
-            Vector2[] positions = { new Vector2(0f, 10f), new Vector2(-12f, 5f),
-                new Vector2(13f, 2f), new Vector2(-8f, -9f), new Vector2(4f, -10f) };
+            Vector2[] positions = { new Vector2(0f, 7f), new Vector2(-13f, 5f),
+                new Vector2(13f, 2f), new Vector2(-10f, -5f), new Vector2(9f, -5.5f) };
             SerializedProperty points = spawnData.FindProperty("_spawnPoints");
             SerializedProperty monsters = spawnData.FindProperty("_monsters");
             points.arraySize = monsters.arraySize = positions.Length;
@@ -504,6 +505,17 @@ namespace MMF.Editor
             return tuning;
         }
 
+        private static MapTuning LoadMapTuning()
+        {
+            EnsureFolder(Root + "/Data/Tuning");
+            string path = Root + "/Data/Tuning/MapTuning.asset";
+            MapTuning tuning = AssetDatabase.LoadAssetAtPath<MapTuning>(path);
+            if (tuning != null) return tuning;
+            tuning = ScriptableObject.CreateInstance<MapTuning>();
+            AssetDatabase.CreateAsset(tuning, path);
+            return tuning;
+        }
+
         private static WeaponDefinition LoadFryingPanWeapon()
         {
             EnsureFolder(Root + "/Data/Weapons");
@@ -550,8 +562,8 @@ namespace MMF.Editor
             ItemDefinition mushroom = LoadItem("Mushroom", "蘑菇", new Color(0.85f, 0.75f, 0.55f));
             Vector2[] positions =
             {
-                new Vector2(2f, 6f), new Vector2(-12f, -8f),
-                new Vector2(24f, 12f), new Vector2(-24f, -11f)
+                new Vector2(2f, 6f), new Vector2(-11f, -3f),
+                new Vector2(12f, 6f), new Vector2(-13f, 7f)
             };
             for (int i = 0; i < positions.Length; i++)
             {

@@ -1,0 +1,13 @@
+﻿{
+    "autoReferenced":  false,
+    "rootNamespace":  "AbilityStudio.Editor",
+    "name":  "AbilityStudio.Editor",
+    "references":  [
+                       "AbilityStudio.Model",
+                       "AbilityStudio.Runtime",
+                       "AbilityStudio.Playground"
+                   ],
+    "includePlatforms":  [
+                             "Editor"
+                         ]
+}

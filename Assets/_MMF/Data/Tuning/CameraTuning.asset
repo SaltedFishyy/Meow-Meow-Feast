@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: CameraTuning
   m_EditorClassIdentifier: MMF.Runtime::MMF.Data.CameraTuning
   _insideSize: 5
-  _outsideSize: 7
+  _outsideSize: 9
+  _fixedOutside: 1
   _zoomDuration: 0.5
   _followTime: 0.2

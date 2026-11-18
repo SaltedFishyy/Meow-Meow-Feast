@@ -31,7 +31,7 @@ namespace MMF.Core
             _zoomElapsed = _tuning.ZoomDuration;
             Canvas.ForceUpdateCanvases();
             _map.RefreshLayout();
-            ApplyBounds(_inside ? InsidePosition() : _target.position);
+            ApplyBounds(_inside ? InsidePosition() : (_tuning.FixedOutside ? OutsideCenter() : _target.position));
             _followPosition = transform.position;
         }
         private void LateUpdate()
@@ -57,6 +57,12 @@ namespace MMF.Core
             {
                 position = InsidePosition();
             }
+            else if (_tuning.FixedOutside)
+            {
+                position = OutsideCenter();
+                _followPosition = transform.position;
+                _velocity = Vector3.zero;
+            }
             else
             {
                 Vector3 followStart = _positionTransition ? _followPosition : transform.position;
@@ -75,6 +81,12 @@ namespace MMF.Core
         {
             Vector3 position = _truck.transform.position;
             position.y -= _camera.orthographicSize * _map.BackpackScreenFraction;
+            position.z = transform.position.z;
+            return position;
+        }
+        private Vector3 OutsideCenter()
+        {
+            Vector3 position = _map.WorldRect.center;
             position.z = transform.position.z;
             return position;
         }

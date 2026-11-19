@@ -49,8 +49,12 @@ namespace AbilityStudio.Editor
                 list.Add(group); return group;
             }
             var coreGroup = Group("技能基础", "category-core");
-            var coreCard = new Button(() => { if (currentSkill() != null) Selection.activeObject = currentSkill(); })
-                { text = "技能基础", name = "inspect-core", tooltip = "每个技能已有一个核心，点击查看设置。" };
+            var coreCard = new Button(() =>
+            {
+                var skill = currentSkill(); if (skill == null) return;
+                if (!skill.HasCore) SkillAssetCommands.AddCore(skill);
+                else Selection.activeObject = skill;
+            }) { text = "技能基础", name = "inspect-core" };
             coreCard.style.height = 34; coreGroup.Add(coreCard);
             var releaseGroup = Group("释放方式", "category-release");
             var areaGroup = Group("技能范围", "category-area");
@@ -109,6 +113,10 @@ namespace AbilityStudio.Editor
             }
             void RefreshGroups()
             {
+                var skill = currentSkill();
+                coreCard.SetEnabled(skill != null);
+                coreCard.text = skill != null && !skill.HasCore ? "添加技能基础" : "技能基础";
+                coreCard.tooltip = skill != null && !skill.HasCore ? "点击重新添加技能基础；其他节点与参数保持不变，请重新连接基础节点。" : "点击查看技能基础设置。";
                 coreGroup.style.display = "技能基础".IndexOf(search.value ?? "", StringComparison.OrdinalIgnoreCase) >= 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 foreach (var group in new[] { releaseGroup, areaGroup, effectGroup, responseGroup, feedbackGroup })
                     group.style.display = group.Children().Any(row => row.ClassListContains("module-row") && row.style.display.value != DisplayStyle.None)

@@ -1,0 +1,16 @@
+{
+  "name": "MMF.Tests.Workshop",
+  "references": [
+    "MMF.Runtime",
+    "MMF.Editor.WeaponWorkshop",
+    "AbilityStudio.Model",
+    "AbilityStudio.Runtime",
+    "AbilityStudio.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

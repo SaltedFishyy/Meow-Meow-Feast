@@ -14,6 +14,7 @@ namespace AbilityStudio.Runtime
         private readonly IEffectOrderPolicy _order;
         private readonly List<IEffectHandler> _handlers;
         private readonly Dictionary<(ISkillCaster, SkillDefinition, SkillKind), double> _ready = new Dictionary<(ISkillCaster, SkillDefinition, SkillKind), double>();
+        private readonly Dictionary<(ISkillCaster, SkillDefinition, string), double> _areaReady = new Dictionary<(ISkillCaster, SkillDefinition, string), double>();
         private readonly List<SkillProjectile> _projectiles = new List<SkillProjectile>();
         private readonly Dictionary<(ISkillCaster, SkillDefinition, string), double> _feedbackReady = new Dictionary<(ISkillCaster, SkillDefinition, string), double>();
         /// <summary>Presentation-only hit requests; subscribing does not change combat resolution.</summary>
@@ -22,7 +23,7 @@ namespace AbilityStudio.Runtime
         public event Action ResetPerformed;
         /// <summary>Creates a runtime with explicit world and time dependencies.</summary>
         public SkillExecutor(ISkillClock clock, ITargetProvider targets, IEffectOrderPolicy order = null, IEnumerable<IEffectHandler> handlers = null)
-        { _clock = clock; _targets = targets; _order = order ?? new FixedTypeOrderPolicy(); _handlers = handlers?.ToList() ?? new List<IEffectHandler> { new DamageEffectHandler(), new PullEffectHandler(), new KnockbackEffectHandler(), new StunEffectHandler(), new BleedEffectHandler(), new SlowEffectHandler() }; }
+        { _clock = clock; _targets = targets; _order = order ?? new FixedTypeOrderPolicy(); _handlers = handlers?.ToList() ?? new List<IEffectHandler> { new DamageEffectHandler(), new HealEffectHandler(), new PullEffectHandler(), new KnockbackEffectHandler(), new StunEffectHandler(), new BleedEffectHandler(), new SlowEffectHandler() }; }
         /// <summary>Live projectiles for presentation.</summary>
         public IReadOnlyList<SkillProjectile> Projectiles => _projectiles;
         /// <summary>Impact notification after damage and effects.</summary>
@@ -34,14 +35,20 @@ namespace AbilityStudio.Runtime
         /// <summary>Cone activation: origin, direction, range and full angle.</summary>
         public event Action<Vector3, Vector3, float, float> ConeCast;
         /// <summary>Seconds remaining on the current cast's cooldown.</summary>
-        public float CooldownRemaining(SkillDefinition skill, ISkillCaster caster, SkillKind? slot = null) =>
-            _ready.TryGetValue((caster, skill, skill != null && skill.WeaponMode ? slot ?? skill.Kind : SkillKind.NormalAttack), out var ready) ? (float)Math.Max(0, ready - _clock.Time) : 0;
+        public float CooldownRemaining(SkillDefinition skill, ISkillCaster caster, SkillKind? slot = null)
+        {
+            if (skill != null && skill.AreaGraph)
+                return skill.AttacksFor(slot ?? skill.Kind).Select(a => AreaCooldownRemaining(skill, caster, a)).DefaultIfEmpty(0).Min();
+            return _ready.TryGetValue((caster, skill, skill != null && skill.WeaponMode ? slot ?? skill.Kind : SkillKind.NormalAttack), out var ready) ? (float)Math.Max(0, ready - _clock.Time) : 0;
+        }
+        private float AreaCooldownRemaining(SkillDefinition skill, ISkillCaster caster, AttackModule area) =>
+            _areaReady.TryGetValue((caster, skill, area.ModuleId), out var ready) ? (float)Math.Max(0, ready - _clock.Time) : 0;
         private int _generation;
         internal int Generation => _generation;
         private sealed class AttackSnapshot
         {
             internal AttackModule Module;
-            internal Vector3 Position;
+            internal Vector3 Position, Direction;
             internal CastEffects Effects, BodyEffects, TipEffects;
             internal DamageMode DamageMode;
             internal int Pierces, Chains;
@@ -50,11 +57,12 @@ namespace AbilityStudio.Runtime
         private static AttackSnapshot SnapshotAttack(SkillDefinition skill, AttackModule attack, ISkillCaster caster, Vector3 aim, float chargeRatio)
         {
             bool explicitDamage = attack.DamageMode == DamageMode.ConnectedDamage;
-            float baseDamage = skill.WeaponMode ? skill.ReleaseForAttack(attack).BaseDamage : skill.BaseDamage;
+            float baseDamage = skill.AreaGraph ? attack.Settings.BaseDamage : skill.WeaponMode ? skill.ReleaseForAttack(attack).BaseDamage : skill.BaseDamage;
             var snapshot = new AttackSnapshot { Module = CloneAttack(attack), Position = SkillPositions.AttackPosition(skill, attack, caster, aim), DamageMode = attack.DamageMode,
-                Effects = SnapshotEffects(skill, attack.ModuleId, caster, aim, "", explicitDamage, baseDamage),
-                BodyEffects = SnapshotEffects(skill, attack.ModuleId, caster, aim, BindingRules.BodyTargets, explicitDamage, baseDamage),
-                TipEffects = SnapshotEffects(skill, attack.ModuleId, caster, aim, BindingRules.TipTargets, explicitDamage, baseDamage) };
+                Effects = SnapshotEffects(skill, attack.ModuleId, caster, aim, "", explicitDamage, baseDamage, attack),
+                BodyEffects = SnapshotEffects(skill, attack.ModuleId, caster, aim, BindingRules.BodyTargets, explicitDamage, baseDamage, attack),
+                TipEffects = SnapshotEffects(skill, attack.ModuleId, caster, aim, BindingRules.TipTargets, explicitDamage, baseDamage, attack) };
+            var direction = aim - SkillPositions.AreaOrigin(skill, attack, caster, aim); direction.z = 0; snapshot.Direction = direction.normalized;
             if (attack is LineThrustAttack rectangle) ((LineThrustAttack)snapshot.Module).Length = SkillChargeGeometry.Length(skill, rectangle, chargeRatio);
             if (attack is CircleAttack circle) ((CircleAttack)snapshot.Module).Radius = SkillChargeGeometry.Radius(skill, circle, chargeRatio);
             if (attack is ConeAttack cone) ((ConeAttack)snapshot.Module).Range = SkillChargeGeometry.Range(skill, cone, chargeRatio);
@@ -71,6 +79,7 @@ namespace AbilityStudio.Runtime
             switch (module)
             {
                 case HitFeedbackEffect feedback: return feedback.Snapshot();
+                case HealEffect heal: return new HealEffect { Mode = heal.Mode, Amount = heal.Amount };
                 case DamageEffect damage: return new DamageEffect { MultiplierPercent = damage.MultiplierPercent };
                 case PullEffect pull: return new PullEffect { StopDistance = pull.StopDistance, Duration = pull.Duration };
                 case StunEffect stun: return new StunEffect { Duration = stun.Duration };
@@ -91,7 +100,7 @@ namespace AbilityStudio.Runtime
                 default: throw new ArgumentException("Unsupported attack");
             }
         }
-        private static CastEffects SnapshotEffects(SkillDefinition skill, string attackId, ISkillCaster caster, Vector3 aim, string sourcePort = "", bool explicitDamage = false, float baseDamage = 0)
+        private static CastEffects SnapshotEffects(SkillDefinition skill, string attackId, ISkillCaster caster, Vector3 aim, string sourcePort = "", bool explicitDamage = false, float baseDamage = 0, AttackModule area = null)
         {
             var result = new CastEffects { BaseDamage = baseDamage, Skill = skill };
             foreach (var original in skill.Effects)
@@ -102,8 +111,8 @@ namespace AbilityStudio.Runtime
                 var clone = CloneEffect(original); result.Modules.Add(clone);
                 if (!(original is PullEffect)) continue;
                 var destination = skill.BindingSource(original.ModuleId, BindingRules.Destination);
-                if (destination != null) result.Destinations[clone] = SkillPositions.ResolveBinding(destination, skill, caster, aim);
-                var completed = SnapshotEffects(skill, original.ModuleId, caster, aim, "", explicitDamage, baseDamage);
+                if (destination != null) result.Destinations[clone] = skill.AreaGraph && area != null && destination == SkillDefinition.CoreLayoutId ? SkillPositions.AreaEndpoint(skill, area, caster, aim) : SkillPositions.ResolveBinding(destination, skill, caster, aim);
+                var completed = SnapshotEffects(skill, original.ModuleId, caster, aim, "", explicitDamage, baseDamage, area);
                 if (completed.Modules.Count > 0) result.Completions[clone] = completed;
             }
             return result;
@@ -117,21 +126,31 @@ namespace AbilityStudio.Runtime
             var release = skill.ReleaseFor(selectedSlot);
             var selectedAttacks = skill.AttacksFor(selectedSlot).ToArray();
             if (skill.WeaponMode && (release == null || selectedAttacks.Length == 0)) return CastResult.Invalid;
-            var origin = SkillPositions.CastOrigin(skill, caster);
+            var origin = skill.AreaGraph ? caster.Position : SkillPositions.CastOrigin(skill, caster);
             var delta = aimPoint - origin; delta.z = 0;
             bool needsDirection = selectedAttacks.Any(a => !(a is CircleAttack)) ||
                 skill.Bindings.Any(b => skill.FindModule(b.SourceId) is SkillEndpointPosition);
             if (!float.IsFinite(aimPoint.x) || !float.IsFinite(aimPoint.y) || !float.IsFinite(aimPoint.z) ||
-                !float.IsFinite(delta.sqrMagnitude) || (delta.sqrMagnitude < 0.0001f && needsDirection)) return CastResult.Invalid;
+                !float.IsFinite(delta.sqrMagnitude) || (!skill.AreaGraph && delta.sqrMagnitude < 0.0001f && needsDirection)) return CastResult.Invalid;
             if (CooldownRemaining(skill, caster, selectedSlot) > 0) return CastResult.OnCooldown;
-            var direction = delta.normalized;
+            if (skill.AreaGraph) selectedAttacks = selectedAttacks.Where(a => AreaCooldownRemaining(skill, caster, a) <= 0).ToArray();
+            if (skill.AreaGraph && selectedAttacks.Any(a =>
+            {
+                float squared = GroundDelta(SkillPositions.AreaOrigin(skill, a, caster, aimPoint), aimPoint).sqrMagnitude;
+                return !float.IsFinite(squared) || (!(a is CircleAttack) && squared < .0001f);
+            })) return CastResult.Invalid;
             var attacks = selectedAttacks.Select(a => SnapshotAttack(skill, a, caster, aimPoint, chargeRatio)).ToArray();
             float damage = skill.WeaponMode ? release.BaseDamage : skill.BaseDamage;
-            _ready[(caster, skill, skill.WeaponMode ? selectedSlot : SkillKind.NormalAttack)] = _clock.Time + (skill.WeaponMode ? release.Cooldown : skill.Cooldown);
+            if (skill.AreaGraph)
+            {
+                foreach (var area in selectedAttacks) _areaReady[(caster, skill, area.ModuleId)] = _clock.Time + area.Settings.Cooldown;
+            }
+            else _ready[(caster, skill, skill.WeaponMode ? selectedSlot : SkillKind.NormalAttack)] = _clock.Time + (skill.WeaponMode ? release.Cooldown : skill.Cooldown);
             foreach (var snapshot in attacks)
             {
                 var attack = snapshot.Module; var position = snapshot.Position; var effects = snapshot.Effects;
-                float automaticDamage = snapshot.DamageMode == DamageMode.BaseDamage ? damage : 0;
+                var direction = skill.AreaGraph ? snapshot.Direction : delta.normalized;
+                float automaticDamage = snapshot.DamageMode == DamageMode.BaseDamage ? (skill.AreaGraph ? effects.BaseDamage : damage) : 0;
                 if (attack is ProjectileAttack projectile)
                 {
                     _projectiles.Add(new SkillProjectile { Caster = caster, Position = position, Direction = direction,
@@ -142,7 +161,7 @@ namespace AbilityStudio.Runtime
                 }
                 bool Intersects(ISkillTarget target)
                 {
-                    if (target == null || !target.IsAlive || target.Team == caster.Team) return false;
+                    if (target == null || !target.IsAlive || (target.Team == caster.Team && !HasHealing(effects) && !HasHealing(snapshot.BodyEffects) && !HasHealing(snapshot.TipEffects))) return false;
                     if (attack is CircleAttack circle)
                     {
                         var offset = target.Position - position; offset.z = 0;
@@ -153,7 +172,7 @@ namespace AbilityStudio.Runtime
                     return RectangleGeometry.Intersects(position, direction, rectangle.Length, rectangle.Width, target.Position, target.Radius);
                 }
                 // Classify the entire hit set before effects can move or kill any targets.
-                var candidates = _targets.Targets.Distinct().Where(Intersects).Select(target => (target,
+                var candidates = TargetsIncludingCaster(caster).Distinct().Where(Intersects).Select(target => (target,
                     tip: attack is LineThrustAttack rect && SkillChargeGeometry.IsTip(position, direction, rect.Length, rect.Width, rect.TipLength, target))).ToArray();
                 foreach (var hit in candidates)
                 {
@@ -174,13 +193,15 @@ namespace AbilityStudio.Runtime
         }
         private void ApplyHit(ISkillCaster caster, ISkillTarget target, Vector3 point, Vector3 aim, float damage, CastEffects effects)
         {
-            if (damage > 0 && target is IDamageable health) health.ApplyDamage(damage * 100 / (100 + Mathf.Max(0, health.Armor)), caster);
+            if (target.Team != caster.Team && damage > 0 && target is IDamageable health) health.ApplyDamage(damage * 100 / (100 + Mathf.Max(0, health.Armor)), caster);
             ApplyEffects(caster, target, point, aim, effects);
         }
         private void ApplyEffects(ISkillCaster caster, ISkillTarget target, Vector3 point, Vector3 aim, CastEffects effects)
         {
             foreach (var effect in _order.Order(effects.Modules))
             {
+                bool friendly = target.Team == caster.Team;
+                if (effect is HealEffect ? !friendly : friendly && (!(effect is HitFeedbackEffect) || !HasHealing(effects))) continue;
                 if (effect is HitFeedbackEffect feedback)
                 {
                     if (feedback.TriggerMode == 1 && !effects.FiredFeedback.Add(feedback)) continue;
@@ -206,8 +227,14 @@ namespace AbilityStudio.Runtime
         }
         private static Vector3 GroundDelta(Vector3 from, Vector3 to)
         { var delta = to - from; delta.z = 0; return delta; }
+        private static bool HasHealing(CastEffects effects) => effects.Modules.Any(effect => effect is HealEffect);
+        private IEnumerable<ISkillTarget> TargetsIncludingCaster(ISkillCaster caster)
+        {
+            foreach (var target in _targets.Targets) yield return target;
+            if (caster is ISkillTarget self) yield return self;
+        }
         private static bool ValidTarget(SkillProjectile shot, ISkillTarget target) =>
-            target != null && target.IsAlive && target.Team != shot.Caster.Team && !shot.HitTargets.Contains(target);
+            target != null && target.IsAlive && (target.Team != shot.Caster.Team || HasHealing(shot.Effects)) && !shot.HitTargets.Contains(target);
         private static void EndOutbound(SkillProjectile shot)
         {
             if (shot.Returning || shot.ReturnMultiplier <= 0) { shot.Finished = true; return; }
@@ -252,7 +279,7 @@ namespace AbilityStudio.Runtime
             {
                 if (shot.Finished) continue;
                 if (shot.Caster is UnityEngine.Object obj && obj == null) { shot.Finished = true; continue; }
-                var candidates = _targets.Targets.Distinct().ToArray();
+                var candidates = TargetsIncludingCaster(shot.Caster).Distinct().ToArray();
                 float time = deltaTime;
                 while (time > 0 && !shot.Finished)
                 {
@@ -301,7 +328,7 @@ namespace AbilityStudio.Runtime
             _projectiles.RemoveAll(p => p.Finished);
         }
         /// <summary>Clears projectiles and cooldowns for a fresh test.</summary>
-        public void Reset() { _generation++; foreach (var shot in _projectiles) shot.Finished = true; _projectiles.Clear(); _ready.Clear(); _feedbackReady.Clear(); ResetPerformed?.Invoke(); }
+        public void Reset() { _generation++; foreach (var shot in _projectiles) shot.Finished = true; _projectiles.Clear(); _ready.Clear(); _areaReady.Clear(); _feedbackReady.Clear(); ResetPerformed?.Invoke(); }
     }
 }
 

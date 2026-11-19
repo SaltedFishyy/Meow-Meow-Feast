@@ -129,7 +129,7 @@ namespace AbilityStudio.Playground
         /// <summary>Restores dummy HP/placement, player position, cooldown and projectiles.</summary>
         public void ResetArena()
         {
-            _player.CancelCharge(); _runtime.Executor.Reset(); _player.transform.position = _playerSpawn;
+            _player.CancelCharge(); _player.Health?.ResetTarget(); _runtime.Executor.Reset(); _player.transform.position = _playerSpawn;
             MoveDummies = false; _moveDummies?.SetValueWithoutNotify(false);
             foreach (var view in _dummyViews) view.MoveDirection = 1;
             foreach (var flash in _areaFlashes) Destroy(flash.line.gameObject);
@@ -263,18 +263,26 @@ namespace AbilityStudio.Playground
             string castButton = _player.Skill.Kind == SkillKind.SpecialAttack ? "右键" : "左键";
             string slot = _player.Skill.Kind == SkillKind.SpecialAttack ? "特殊攻击" : "普通攻击";
             _instructions.text = "WASD 移动 · 鼠标瞄准\n" + slot + "：" + castButton + " / 空格\n" + (_player.PreviewRelease is ChargeRelease ? "按住蓄力，松开释放 · Esc 取消" : "按下立即释放");
-            if (_player.Skill.WeaponMode) _instructions.text = "WASD 移动 · 鼠标瞄准\n左键普通攻击 · 右键特殊攻击\n蓄力时松开释放 · Esc 取消\n预览：" + (_player.PreviewSlot == SkillKind.NormalAttack ? "普通攻击" : "特殊攻击");
+            if (_player.Skill.DualAttack) _instructions.text = "WASD 移动 · 鼠标瞄准\n左键普通攻击 · 右键特殊攻击\n蓄力时松开释放 · Esc 取消\n预览：" + (_player.PreviewSlot == SkillKind.NormalAttack ? "普通攻击" : "特殊攻击");
+            if (_player.Skill.AreaGraph) _instructions.text = "WASD 移动 · 鼠标瞄准\n普通攻击：" + SkillInput.DisplayName(_player.Skill.NormalKey) +
+                (_player.Skill.DualAttack ? " · 特殊攻击：" + SkillInput.DisplayName(_player.Skill.SpecialKey) : "") + "\n按住蓄力，松开释放 · Esc 取消";
             TickDummyMovement(Time.deltaTime);
             float remaining = _runtime.Executor.CooldownRemaining(_player.Skill, _player, _player.PreviewSlot);
             var errors = SkillValidator.Validate(_player.Skill);
             _cooldown.text = errors.Count > 0 ? "技能配置无效" : _player.IsCharging ? "蓄力 " + (_player.ChargeRatio * 100).ToString("0") + "% · 松开释放" : remaining > 0 ? "冷却中  " + remaining.ToString("0.0") + " 秒" : "就绪  ·  " + _player.Skill.BaseDamage.ToString("0.#") + " 伤害";
             _cooldownBar.value = _player.IsCharging ? _player.ChargeRatio : remaining <= 0 ? 1 : 1 - Mathf.Clamp01(remaining / Mathf.Max(0.001f, _player.Skill.Cooldown));
-            if (_player.Skill.WeaponMode)
+            if (_player.Skill.DualAttack)
             {
                 float normal = _runtime.Executor.CooldownRemaining(_player.Skill,_player,SkillKind.NormalAttack);
                 float special = _runtime.Executor.CooldownRemaining(_player.Skill,_player,SkillKind.SpecialAttack);
                 _cooldown.text = "普攻 " + (_player.Skill.ReleaseFor(SkillKind.NormalAttack) == null ? "未配置" : normal > 0 ? normal.ToString("0.0") + "秒" : "就绪") + " · 特攻 " + (_player.Skill.ReleaseFor(SkillKind.SpecialAttack) == null ? "未配置" : special > 0 ? special.ToString("0.0") + "秒" : "就绪") + (_player.IsCharging ? "\n蓄力 " + (_player.ChargeRatio*100).ToString("0") + "%" : "");
                 _cooldownBar.value = _player.IsCharging ? _player.ChargeRatio : remaining <= 0 ? 1 : 1-Mathf.Clamp01(remaining/Mathf.Max(.001f,_player.PreviewRelease?.Cooldown ?? 1));
+            }
+            if (_player.Skill.AreaGraph)
+            {
+                float total = _player.PreviewAttacks.Select(a => a.Settings.Cooldown).DefaultIfEmpty(0).Max();
+                _cooldownBar.value = _player.IsCharging ? _player.ChargeRatio : remaining <= 0 ? 1 : 1 - Mathf.Clamp01(remaining / Mathf.Max(.001f, total));
+                if (!_player.Skill.DualAttack) _cooldown.text = _player.IsCharging ? "蓄力 " + (_player.ChargeRatio * 100).ToString("0") + "%" : remaining > 0 ? "冷却 " + remaining.ToString("0.0") + "秒" : "就绪";
             }
             if (errors.Count > 0) _message.text = string.Join("\n", errors);
             else if (Time.time > _messageUntil)
@@ -288,13 +296,17 @@ namespace AbilityStudio.Playground
                 int knockbacks = activeEffects.Count(effect => effect is KnockbackEffect);
                 _message.text = string.Join(" + ", names) + " → 伤害" + (slows > 0 ? " + 减速" + (slows > 1 ? " × " + slows : "") : "") + (bleeds > 0 ? " + 流血" + (bleeds > 1 ? " × " + bleeds : "") : "") + (stuns > 0 ? " + 眩晕" + (stuns > 1 ? " × " + stuns : "") : "") + (knockbacks > 0 ? " + 击退" + (knockbacks > 1 ? " × " + knockbacks : "") : "") + (pulls > 0 ? " + 拉拽" + (pulls > 1 ? " × " + pulls : "") : "");
             }
-            var direction = _player.AimPoint - _player.Position; direction.z = 0;
+            var firstArea = _player.PreviewAttacks.FirstOrDefault();
+            var aimOrigin = firstArea == null ? _player.Position : SkillPositions.AreaOrigin(_player.Skill, firstArea, _player, _player.AimPoint);
+            var direction = _player.AimPoint - aimOrigin; direction.z = 0;
             float range = _player.PreviewAttacks.OfType<ProjectileAttack>().Select(a => a.Range).DefaultIfEmpty(0).Max();
             _aimLine.enabled = range > 0 && direction.sqrMagnitude > 0.001f;
-            _aimLine.SetPosition(0, _player.Position + Vector3.back * 0.08f);
-            _aimLine.SetPosition(1, _player.Position + direction.normalized * Mathf.Min(range, direction.magnitude) + Vector3.back * 0.08f);
+            _aimLine.SetPosition(0, aimOrigin + Vector3.back * 0.08f);
+            _aimLine.SetPosition(1, aimOrigin + direction.normalized * Mathf.Min(range, direction.magnitude) + Vector3.back * 0.08f);
             if (_coreEndpointPreview == null) _coreEndpointPreview = CreateLine("Skill Core endpoint", 0.06f, new Color(0.4f, 1, 0.5f));
-            if (!_player.Skill.WeaponMode && _player.Skill.Bindings.Any(b => b.SourceId == SkillDefinition.CoreLayoutId))
+            if (_player.Skill.AreaGraph && firstArea != null)
+                DrawCircle(_coreEndpointPreview, SkillPositions.AreaEndpoint(_player.Skill, firstArea, _player, _player.AimPoint), .15f);
+            else if (!_player.Skill.WeaponMode && _player.Skill.Bindings.Any(b => b.SourceId == SkillDefinition.CoreLayoutId))
                 DrawCircle(_coreEndpointPreview, SkillPositions.Endpoint(_player.Skill, _player, _player.AimPoint), 0.15f);
             else _coreEndpointPreview.enabled = false;
             while (_positionPreviews.Count < _player.Skill.Positions.Count)
@@ -306,18 +318,17 @@ namespace AbilityStudio.Playground
                 else _positionPreviews[i].enabled = false;
             }
             var rectangles = _player.PreviewAttacks.OfType<LineThrustAttack>().ToArray();
-            var castOrigin = _player.Position + _player.Rotation * _player.Skill.CastOriginOffset;
+            var castOrigin = aimOrigin;
             var rectangleDirection = _player.AimPoint - castOrigin; rectangleDirection.z = 0;
-            bool validDirection = float.IsFinite(rectangleDirection.sqrMagnitude) && rectangleDirection.sqrMagnitude >= 0.0001f;
             while (_rectanglePreviews.Count < rectangles.Length)
                 _rectanglePreviews.Add(CreateLine("Rectangle aim bounds", 0.045f, new Color(0.25f, 0.85f, 1, 0.7f)));
             while (_tipPreviews.Count < rectangles.Length)
                 _tipPreviews.Add(CreateLine("Rectangle tip preview", .075f, new Color(1, .8f, .2f)));
             for (int i = 0; i < _rectanglePreviews.Count; i++)
             {
-                if (i < rectangles.Length && validDirection && float.IsFinite(rectangles[i].Length) && rectangles[i].Length > 0 && float.IsFinite(rectangles[i].Width) && rectangles[i].Width > 0)
+                if (i < rectangles.Length && SkillPositions.AreaDirection(_player.Skill, rectangles[i], _player, _player.AimPoint).sqrMagnitude > .0001f && float.IsFinite(rectangles[i].Length) && rectangles[i].Length > 0 && float.IsFinite(rectangles[i].Width) && rectangles[i].Width > 0)
                 {
-                    var rect = rectangles[i]; var origin = SkillPositions.AttackPosition(_player.Skill, rect, _player, _player.AimPoint);
+                    var rect = rectangles[i]; rectangleDirection = SkillPositions.AreaDirection(_player.Skill, rect, _player, _player.AimPoint); var origin = SkillPositions.AttackPosition(_player.Skill, rect, _player, _player.AimPoint);
                     float length = SkillChargeGeometry.Length(_player.Skill, rect, _player.ChargeRatio);
                     DrawRectangle(_rectanglePreviews[i], origin, rectangleDirection.normalized, length, rect.Width);
                     bool hasZone = _player.Skill.Bindings.Any(b => b.SourceId == rect.ModuleId && (b.SourcePort == BindingRules.TipTargets || b.SourcePort == BindingRules.BodyTargets));
@@ -331,8 +342,8 @@ namespace AbilityStudio.Playground
                 _conePreviews.Add(CreateLine("Cone aim bounds", 0.045f, new Color(0.25f, 0.85f, 1, 0.7f)));
             for (int i = 0; i < _conePreviews.Count; i++)
             {
-                if (i < cones.Length && validDirection && float.IsFinite(cones[i].Range) && cones[i].Range > 0 && float.IsFinite(cones[i].AngleDegrees) && cones[i].AngleDegrees > 0 && cones[i].AngleDegrees <= 360)
-                    DrawCone(_conePreviews[i], SkillPositions.AttackPosition(_player.Skill, cones[i], _player, _player.AimPoint), rectangleDirection.normalized, SkillChargeGeometry.Range(_player.Skill, cones[i], _player.ChargeRatio), cones[i].AngleDegrees);
+                if (i < cones.Length && SkillPositions.AreaDirection(_player.Skill, cones[i], _player, _player.AimPoint).sqrMagnitude > .0001f && float.IsFinite(cones[i].Range) && cones[i].Range > 0 && float.IsFinite(cones[i].AngleDegrees) && cones[i].AngleDegrees > 0 && cones[i].AngleDegrees <= 360)
+                    DrawCone(_conePreviews[i], SkillPositions.AttackPosition(_player.Skill, cones[i], _player, _player.AimPoint), SkillPositions.AreaDirection(_player.Skill, cones[i], _player, _player.AimPoint), SkillChargeGeometry.Range(_player.Skill, cones[i], _player.ChargeRatio), cones[i].AngleDegrees);
                 else _conePreviews[i].enabled = false;
             }
             var areas = _player.PreviewAttacks.OfType<CircleAttack>().ToArray();

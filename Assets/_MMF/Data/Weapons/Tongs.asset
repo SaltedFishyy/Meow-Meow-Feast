@@ -13,30 +13,39 @@ MonoBehaviour:
   m_Name: Tongs
   m_EditorClassIdentifier: AbilityStudio.Model::AbilityStudio.Model.SkillDefinition
   schemaVersion: 1
+  coreRemoved: 0
+  areaGraph: 1
+  attackMode: 1
+  normalKey: 0
+  specialKey: 1
   id: new_skill
   displayName: Tongs
   castOriginOffset: {x: 0, y: 0, z: 0}
   cooldown: 1
-  baseDamage: 10
+  baseDamage: 2
   distance: 8
   integratedAttacks: 0
-  weaponMode: 0
+  weaponMode: 1
   kind: 0
-  releases: []
+  releases:
+  - rid: 5963565664572014693
+  - rid: 5963565664572014694
   coreEndpointMigrated: 0
   attack:
     rid: 5963565642716282886
-  additionalAttacks: []
+  additionalAttacks:
+  - rid: 5963565664572014691
   effects:
   - rid: 5963565642716282887
   - rid: 5963565664572014674
+  - rid: 5963565664572014697
+  - rid: 5963565664572014698
+  - rid: 5963565664572014699
+  - rid: 5963565687738990599
+  - rid: 5963565687738990600
   positions: []
   responses: []
   bindings:
-  - sourceId: skill_core
-    targetId: 7acc356576294c92967e5a81fcc74e9d
-    input: position
-    sourcePort: 
   - sourceId: 7acc356576294c92967e5a81fcc74e9d
     targetId: 19ccf68ff7384d12a0917c291b6933fe
     input: targets
@@ -45,15 +54,75 @@ MonoBehaviour:
     targetId: 79b68e67c3294623b6a1dcbf591f3f26
     input: targets
     sourcePort: 
+  - sourceId: skill_core
+    targetId: f4d884db46864954a9965fc98a641b05
+    input: trigger
+    sourcePort: normal
+  - sourceId: f4d884db46864954a9965fc98a641b05
+    targetId: 7acc356576294c92967e5a81fcc74e9d
+    input: cast
+    sourcePort: 
+  - sourceId: skill_core
+    targetId: 7acc356576294c92967e5a81fcc74e9d
+    input: position
+    sourcePort: 
+  - sourceId: skill_core
+    targetId: b3696aae5f044f828f019694b75a1b32
+    input: trigger
+    sourcePort: special
+  - sourceId: b3696aae5f044f828f019694b75a1b32
+    targetId: d242eabc6ef348388b1c66d5ded25e9d
+    input: cast
+    sourcePort: 
+  - sourceId: b3696aae5f044f828f019694b75a1b32
+    targetId: d242eabc6ef348388b1c66d5ded25e9d
+    input: charge
+    sourcePort: charge
+  - sourceId: d242eabc6ef348388b1c66d5ded25e9d
+    targetId: 2fad7c7a03164a2197e45d3d1b10beda
+    input: targets
+    sourcePort: tip
+  - sourceId: d242eabc6ef348388b1c66d5ded25e9d
+    targetId: df78ecb8bc8e404d9a888aa8f2b1d5b8
+    input: targets
+    sourcePort: body
+  - sourceId: d242eabc6ef348388b1c66d5ded25e9d
+    targetId: 3d22b1fd586d4604b7667afde7ab3cd9
+    input: targets
+    sourcePort: tip
+  - sourceId: d242eabc6ef348388b1c66d5ded25e9d
+    targetId: 7101ccfe0eee48c5bc81ed0f5608c653
+    input: targets
+    sourcePort: 
+  - sourceId: 7acc356576294c92967e5a81fcc74e9d
+    targetId: ea7fc8c4ffcc491a99346e0a5c90c686
+    input: targets
+    sourcePort: 
   boardLayout:
   - moduleId: skill_core
-    position: {x: 220, y: 20}
+    position: {x: -280, y: -60}
   - moduleId: 7acc356576294c92967e5a81fcc74e9d
-    position: {x: 620, y: 20}
+    position: {x: 520, y: -60}
   - moduleId: 19ccf68ff7384d12a0917c291b6933fe
-    position: {x: 1040, y: 20}
+    position: {x: 940, y: -60}
   - moduleId: 79b68e67c3294623b6a1dcbf591f3f26
-    position: {x: 1420, y: 20}
+    position: {x: 1340, y: -60}
+  - moduleId: d242eabc6ef348388b1c66d5ded25e9d
+    position: {x: 520, y: 220}
+  - moduleId: b3696aae5f044f828f019694b75a1b32
+    position: {x: 120, y: 220}
+  - moduleId: f4d884db46864954a9965fc98a641b05
+    position: {x: 120, y: -60}
+  - moduleId: 2fad7c7a03164a2197e45d3d1b10beda
+    position: {x: 940, y: 340}
+  - moduleId: df78ecb8bc8e404d9a888aa8f2b1d5b8
+    position: {x: 940, y: 220}
+  - moduleId: 3d22b1fd586d4604b7667afde7ab3cd9
+    position: {x: 940, y: 440}
+  - moduleId: 7101ccfe0eee48c5bc81ed0f5608c653
+    position: {x: 1340, y: 220}
+  - moduleId: ea7fc8c4ffcc491a99346e0a5c90c686
+    position: {x: 940, y: 100}
   references:
     version: 2
     RefIds:
@@ -61,13 +130,14 @@ MonoBehaviour:
       type: {class: ProjectileAttack, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
         moduleId: 7acc356576294c92967e5a81fcc74e9d
+        castOriginOffset: {x: 0, y: 0, z: 0}
         releaseMode: 0
         settings:
           rid: 5963565664572014592
         damageMode: 0
         speed: 15
         range: 12
-        size: 0.5
+        size: 0.1
     - rid: 5963565642716282887
       type: {class: PullEffect, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
@@ -78,7 +148,7 @@ MonoBehaviour:
       type: {class: ChargeRelease, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
         moduleId: c97f929b02a1400f9b337e98e815117d
-        baseDamage: 10
+        baseDamage: 2
         cooldown: 1
         distance: 8
         duration: 2
@@ -91,3 +161,68 @@ MonoBehaviour:
         strength: 0.15
         duration: 0.2
         frequency: 25
+    - rid: 5963565664572014691
+      type: {class: LineThrustAttack, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: d242eabc6ef348388b1c66d5ded25e9d
+        castOriginOffset: {x: 0, y: 0, z: 0}
+        releaseMode: 0
+        settings:
+          rid: 5963565664572014692
+        damageMode: 1
+        length: 8
+        width: 3
+        minLength: 3
+        tipLength: 1.5
+    - rid: 5963565664572014692
+      type: {class: ChargeRelease, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: b716c7b36ee74e92bd4116c9f07da889
+        baseDamage: 2
+        cooldown: 1
+        distance: 8
+        duration: 2
+    - rid: 5963565664572014693
+      type: {class: ChargeRelease, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: b3696aae5f044f828f019694b75a1b32
+        baseDamage: 2
+        cooldown: 1
+        distance: 8
+        duration: 2
+    - rid: 5963565664572014694
+      type: {class: InstantRelease, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: f4d884db46864954a9965fc98a641b05
+        baseDamage: 2
+        cooldown: 1
+        distance: 8
+    - rid: 5963565664572014697
+      type: {class: StunEffect, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: 2fad7c7a03164a2197e45d3d1b10beda
+        duration: 2
+    - rid: 5963565664572014698
+      type: {class: DamageEffect, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: df78ecb8bc8e404d9a888aa8f2b1d5b8
+        multiplierPercent: 100
+    - rid: 5963565664572014699
+      type: {class: DamageEffect, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: 3d22b1fd586d4604b7667afde7ab3cd9
+        multiplierPercent: 200
+    - rid: 5963565687738990599
+      type: {class: CameraShakeFeedback, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: 7101ccfe0eee48c5bc81ed0f5608c653
+        triggerMode: 1
+        minInterval: 0
+        strength: 0.15
+        duration: 0.2
+        frequency: 25
+    - rid: 5963565687738990600
+      type: {class: StunEffect, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+      data:
+        moduleId: ea7fc8c4ffcc491a99346e0a5c90c686
+        duration: 2

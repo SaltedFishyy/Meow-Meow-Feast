@@ -3,7 +3,8 @@
     "rootNamespace": "MMF.Editor.WeaponWorkshop",
     "references": [
         "AbilityStudio.Model",
-        "AbilityStudio.Editor"
+        "AbilityStudio.Editor",
+        "MMF.Runtime"
     ],
     "includePlatforms": [
         "Editor"

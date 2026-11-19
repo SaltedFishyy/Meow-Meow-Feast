@@ -13,6 +13,11 @@ MonoBehaviour:
   m_Name: GrapplingHook
   m_EditorClassIdentifier: AbilityStudio.Model::AbilityStudio.Model.SkillDefinition
   schemaVersion: 1
+  coreRemoved: 0
+  areaGraph: 0
+  attackMode: 0
+  normalKey: 0
+  specialKey: 1
   id: grappling_hook
   displayName: "\u6293\u94A9"
   castOriginOffset: {x: 0, y: 0, z: 0}
@@ -44,6 +49,7 @@ MonoBehaviour:
       type: {class: ProjectileAttack, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
         moduleId: fbf1eeb71b5a40418ac5210ee8fb881f
+        castOriginOffset: {x: 0, y: 0, z: 0}
         releaseMode: 0
         settings:
           rid: 5963565664572014678
@@ -61,7 +67,7 @@ MonoBehaviour:
       type: {class: ChargeRelease, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
         moduleId: 6d24eaef940f45b6b1a8baa5aa1dc2fb
-        baseDamage: 10
+        baseDamage: 2
         cooldown: 1
         distance: 8
         duration: 2

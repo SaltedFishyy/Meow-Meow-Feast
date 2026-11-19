@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-11-18 · 合并队友 weapon 分支（工坊武器进主游戏）
+
+**内容**（队友 EC 的 3 个提交：`b0230a8`、`af7937e`、`d04e823`）
+- 武器工坊可以"装备给 P1"（`Data/Resources/MMFWorkshopLoadout.asset`，现在装的是夹子 Tongs）。装上以后，主游戏里玩家的左键（武器设了的话还有右键）走工坊武器的技能（`WorkshopWeaponController`），不再用平底锅打；武器占了右键时不能扔东西（也就不能喂顾客）。卸下后恢复背包里的平底锅。
+- 怪物加 `MonsterSkillTarget`（受工坊技能的伤害、眩晕、减速、流血）；`PlayerHealth.Heal`；技能包更新、2D 技能试玩场景 `_Sandbox/Playground2D`。
+- 用户决定（2026-11-18）：合并后**保持装着夹子**。
+
+**Claude 合并时改的**（weapon 分支是从旧 main 开出来的）
+- `PlayerInputReader` 冲突：保留我们的锅拖放左键优先、E 放进锅，加上工坊武器的左右键；删掉队友版本里对已删动作 `Interact` / `Cancel` 的订阅（T014d 删了，留着会在运行时报错）。
+- `WorkshopWeaponController`：删掉两处 `PlayerInteractor.Cooking`（旧煎菜窗口，T014d 已删，新版煎锅不锁玩家），否则编译不过。
+- `Prototype.unity` 冲突：用生成器的版本。队友改的只是"失败"文字的自动缩放最大字号（40 → 72），这个文字没开自动缩放，看不出区别，所以没搬进生成器。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；场景生成 3 次，引用 222 个、空 0 个；EditMode 87 个测试全部通过（多了队友的 3 个）。
+- Play：装着夹子打团子能掉血；进出 Play 没有报错。
+- **队友的 PlayMode 测试 `WorkshopMainSceneTests` 失败**：测试里临时做的圆形攻击，攻击圈落在玩家自己身上（不在瞄准点），所以打不到 2 格外的目标。这段在技能包里，和我们的代码无关，合并前后都一样，需要队友看。
+- 技能包自己的测试（`LocalPackages/com.emilycai.ability-studio/Tests`）没有在本项目跑（包没有设成可测试）。
+
+---
+
 ## 2026-11-18 · T016 · 餐车长、宽、门宽放进数值窗口（下次 Play 生效）
 
 **做了什么**（Codex 编写，Claude 审查，一次通过）

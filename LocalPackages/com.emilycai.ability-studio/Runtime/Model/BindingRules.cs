@@ -11,6 +11,7 @@ namespace AbilityStudio.Model
         public const string TipTargets = "tip";
         /// <summary>Area center or attack origin.</summary>
         public const string Position = "position";
+        public const string Origin = "origin";
         /// <summary>Targets from an attack or a completed Pull.</summary>
         public const string Targets = "targets";
         /// <summary>Pull destination position.</summary>
@@ -36,8 +37,10 @@ namespace AbilityStudio.Model
         public static bool CanConnect(SkillDefinition skill, string sourceId, string targetId, string input, string sourcePort = "")
         {
             if (skill == null || (sourceId == targetId && !(skill.IntegratedAttacks && input == Position && sourcePort == Endpoint))) return false;
+            if (!skill.HasCore && (sourceId == SkillDefinition.CoreLayoutId || targetId == SkillDefinition.CoreLayoutId)) return false;
             var source = skill.FindModule(sourceId); var target = skill.FindModule(targetId);
             sourcePort = sourcePort ?? "";
+            if (skill.AreaGraph && input == Position && !(target is CircleAttack) && sourceId != SkillDefinition.CoreLayoutId && !(source is PositionModule)) return false;
             if (input == Trigger) return skill.WeaponMode && sourceId == SkillDefinition.CoreLayoutId && (skill.IntegratedAttacks ? target is AttackModule : target is ReleaseModule) && (sourcePort == Normal || sourcePort == Special) && !skill.Bindings.Any(b => b.Input == Trigger && b.SourcePort == sourcePort && b.TargetId != targetId);
             if (input == Cast) return skill.WeaponMode && !skill.IntegratedAttacks && source is ReleaseModule && target is AttackModule && sourcePort == "";
             if ((source is ReleaseModule || (skill.IntegratedAttacks && source is AttackModule)) && sourcePort == Endpoint) return skill.WeaponMode && ((input == Position && target is AttackModule) || (input == Destination && target is PullEffect));
@@ -46,6 +49,7 @@ namespace AbilityStudio.Model
             if (sourcePort != "" && !(source is LineThrustAttack && input == Targets && (sourcePort == BodyTargets || sourcePort == TipTargets))) return false;
             if (input == Projectile) return source is ProjectileAttack && target is HitResponseModule;
             bool isPosition = source is PositionModule || sourceId == SkillDefinition.CoreLayoutId;
+            if (input == Origin) return isPosition && target is AttackModule;
             if (input == Position) return isPosition && target is AttackModule;
             if (input == Destination) return isPosition && target is PullEffect;
             if (input == Targets)

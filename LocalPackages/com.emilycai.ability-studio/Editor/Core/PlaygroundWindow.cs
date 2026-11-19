@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using AbilityStudio.Model;
 using AbilityStudio.Runtime;
+using AbilityStudio.Playground;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -23,6 +24,7 @@ namespace AbilityStudio.Editor
         private readonly List<Label> _labels = new List<Label>();
         private readonly HashSet<KeyCode> _keys = new HashSet<KeyCode>();
         private int _heldMouse = -1;
+        private KeyCode _heldKeyboard;
         private bool _spaceHeld, _visible = true, _transitioning, _failed;
         private double _lastUpdate;
 
@@ -80,17 +82,19 @@ namespace AbilityStudio.Editor
             _viewport.style.backgroundColor = new Color(.025f, .04f, .06f);
             _image = new Image { scaleMode = ScaleMode.StretchToFill, pickingMode = PickingMode.Ignore };
             _image.StretchToParentSize(); _viewport.Add(_image); rootVisualElement.Add(_viewport);
-            _result = new Label("点击预览获得焦点 · WASD 移动 · 左键普通／右键特殊 · 按住蓄力，松开释放 · Esc 取消");
+            _result = new Label("点击预览获得焦点 · WASD 移动 · 按技能基础设置的键位攻击 · 按住蓄力，松开释放 · Esc 取消");
             _result.style.whiteSpace = WhiteSpace.Normal; rootVisualElement.Add(_result);
             _feedback = new Label("音效仅显示触发提示；不会混入主游戏音频。");
             _feedback.style.whiteSpace = WhiteSpace.Normal; rootVisualElement.Add(_feedback);
             _viewport.RegisterCallback<MouseMoveEvent>(evt => Aim(evt.localMousePosition));
             _viewport.RegisterCallback<MouseDownEvent>(evt =>
             {
-                if (evt.button != 0 && evt.button != 1) return;
+                if (evt.button < 0 || evt.button > 2) return;
                 _viewport.Focus(); Aim(evt.localMousePosition);
                 if (_preview == null || _paused || _heldMouse >= 0 || _spaceHeld) return;
-                var slot = evt.button == 1 ? SkillKind.SpecialAttack : SkillKind.NormalAttack;
+                var authored = SkillInput.MouseKey(evt.button);
+                if (_skill != null && _skill.AreaGraph && (!authored.HasValue || !_skill.SlotForKey(authored.Value).HasValue)) return;
+                var slot = _skill != null && _skill.AreaGraph ? _skill.SlotForKey(authored.Value).Value : evt.button == 1 ? SkillKind.SpecialAttack : SkillKind.NormalAttack;
                 if (_skill != null && !_skill.WeaponMode && slot != _skill.Kind) return;
                 var result = _preview.Simulation.Press(slot); ShowResult(result);
                 if (result == CastResult.Charging) { _heldMouse = evt.button; _viewport.CaptureMouse(); }
@@ -108,10 +112,12 @@ namespace AbilityStudio.Editor
             {
                 if (evt.keyCode == KeyCode.Escape) { ClearInput(); evt.StopPropagation(); return; }
                 if (!IsInputKey(evt.keyCode)) return;
-                if (_keys.Add(evt.keyCode) && evt.keyCode == KeyCode.Space && _preview != null && !_paused && _heldMouse < 0)
+                var key = SkillInput.EditorKey(evt.keyCode);
+                var authoredSlot = _skill != null && _skill.AreaGraph && key.HasValue ? _skill.SlotForKey(key.Value) : null;
+                if (_keys.Add(evt.keyCode) && (authoredSlot.HasValue || evt.keyCode == KeyCode.Space) && _preview != null && !_paused && _heldMouse < 0 && !_spaceHeld)
                 {
-                    var result = _preview.Simulation.Press(_preview.Simulation.PreviewSlot);
-                    _spaceHeld = result == CastResult.Charging; ShowResult(result);
+                    var result = _preview.Simulation.Press(authoredSlot ?? _preview.Simulation.PreviewSlot);
+                    _spaceHeld = result == CastResult.Charging; _heldKeyboard = evt.keyCode; ShowResult(result);
                 }
                 evt.StopPropagation();
             });
@@ -119,13 +125,14 @@ namespace AbilityStudio.Editor
             {
                 if (!IsInputKey(evt.keyCode)) return;
                 _keys.Remove(evt.keyCode);
-                if (evt.keyCode == KeyCode.Space && _spaceHeld)
+                if (evt.keyCode == _heldKeyboard && _spaceHeld)
                 { _spaceHeld = false; if (_preview != null && !_paused) ShowResult(_preview.Simulation.Release()); }
                 evt.StopPropagation();
             });
             _viewport.RegisterCallback<BlurEvent>(_ => ClearInput());
         }
-        private static bool IsInputKey(KeyCode key) => key == KeyCode.W || key == KeyCode.A || key == KeyCode.S || key == KeyCode.D || key == KeyCode.Space;
+        private bool IsInputKey(KeyCode key) => key == KeyCode.W || key == KeyCode.A || key == KeyCode.S || key == KeyCode.D || key == KeyCode.Space ||
+            (_skill != null && _skill.AreaGraph && SkillInput.EditorKey(key) is SkillInputKey authored && _skill.SlotForKey(authored).HasValue);
         private void Aim(Vector2 point)
         { if (_preview != null && _preview.GroundPoint(point, _viewport.contentRect.size, out var aim)) _preview.Simulation.SetAim(aim); }
         private void ShowResult(CastResult result)
@@ -168,8 +175,7 @@ namespace AbilityStudio.Editor
                 var errors = SkillValidator.Validate(_skill);
                 _status.text = errors.Count > 0 ? string.Join("\n", errors) : (_paused ? "预览已暂停" : "独立运行") +
                     " · 普通冷却 " + world.Executor.CooldownRemaining(_skill, world, SkillKind.NormalAttack).ToString("0.0") +
-                    "s · 特殊冷却 " + world.Executor.CooldownRemaining(_skill, world, SkillKind.SpecialAttack).ToString("0.0") +
-                    "s" + (world.IsCharging ? " · 蓄力 " + (world.ChargeRatio * 100).ToString("0") + "%" : "");
+                    "s" + (_skill != null && _skill.DualAttack ? " · 特殊冷却 " + world.Executor.CooldownRemaining(_skill, world, SkillKind.SpecialAttack).ToString("0.0") + "s" : "") + (world.IsCharging ? " · 蓄力 " + (world.ChargeRatio * 100).ToString("0") + "%" : "");
                 if (!string.IsNullOrEmpty(_preview.Feedback.LastMessage)) _feedback.text = _preview.Feedback.LastMessage;
                 while (_labels.Count < world.Targets.Count)
                 {

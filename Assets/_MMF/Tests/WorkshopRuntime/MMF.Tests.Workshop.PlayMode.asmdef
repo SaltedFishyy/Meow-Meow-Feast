@@ -1,0 +1,11 @@
+{
+  "name": "MMF.Tests.Workshop.PlayMode",
+  "references": [
+    "MMF.Runtime",
+    "AbilityStudio.Model",
+    "AbilityStudio.Runtime"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

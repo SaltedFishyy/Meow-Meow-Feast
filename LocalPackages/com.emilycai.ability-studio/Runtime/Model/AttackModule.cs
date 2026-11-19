@@ -4,6 +4,9 @@ namespace AbilityStudio.Model
     /// <summary>Defines how a skill reaches targets.</summary>
     [Serializable] public abstract class AttackModule : SkillModule
     {
+        [UnityEngine.SerializeField] private UnityEngine.Vector3 castOriginOffset;
+        /// <summary>Local XY cast offset owned by this area.</summary>
+        public UnityEngine.Vector3 CastOriginOffset { get => castOriginOffset; set => castOriginOffset = value; }
         [UnityEngine.SerializeField] private int releaseMode;
         [UnityEngine.SerializeReference] private ChargeRelease settings = new ChargeRelease();
         [NonSerialized] private InstantRelease instantSettings;

@@ -50,7 +50,7 @@ namespace MMF.Editor
                 Debug.LogError("Cannot build prototype: MMFControls/Gameplay/Move is missing.");
                 return;
             }
-            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Interact", "Cancel", "Lift", "Throw", "FryW", "FryA", "FryS", "FryD", "Restart" };
+            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "PlaceInPan", "Lift", "Throw", "Restart" };
             foreach (string action in requiredActions)
                 if (controls.FindAction("Gameplay/" + action) == null)
                 {
@@ -126,7 +126,7 @@ namespace MMF.Editor
             RectTransform row = CreateBackpackContent(sprite, backpack);
             CreatePlayerHealthBar(row.parent, backpack.GetComponent<PlayerHealth>());
             CreateTruckHealthBar(row.parent, truck.GetComponent<TruckHealth>());
-            CreateFrying(sprite, backpack, truck, row);
+            CreateFrying(sprite, backpack, truck, row, camera);
             CreateGameOverScreen(row.parent, truck.GetComponent<TruckHealth>(),
                 backpack.GetComponent<PlayerInputReader>(), controls);
             SetReference(arena, "_follow", follow);
@@ -167,7 +167,9 @@ namespace MMF.Editor
         {
             TruckArea truck = new GameObject("Truck").AddComponent<TruckArea>();
             TruckHealth health = truck.gameObject.AddComponent<TruckHealth>();
-            SetReference(health, "_tuning", LoadTruckTuning());
+            TruckTuning tuning = LoadTruckTuning();
+            SetReference(health, "_tuning", tuning);
+            SetReference(truck, "_tuning", tuning);
             SpriteRenderer floor = CreateSprite("Truck Floor", sprite, new Color(0.7f, 0.67f, 0.52f), 0);
             floor.transform.SetParent(truck.transform, false);
             SetReference(truck, "_floor", floor.transform);
@@ -182,7 +184,6 @@ namespace MMF.Editor
                 walls.GetArrayElementAtIndex(i).objectReferenceValue = wall.transform;
             }
             data.ApplyModifiedPropertiesWithoutUndo();
-            truck.RefreshLayout();
             return truck;
         }
         private static void CreateMonsters(Sprite sprite, TruckArea truck, PlayerBackpack player, MapBounds arena)
@@ -231,36 +232,9 @@ namespace MMF.Editor
                 Transform point = new GameObject("Monster Spawn " + i).transform;
                 point.SetParent(spawner.transform, false);
                 point.position = truck.transform.position + (Vector3)positions[i];
-                SpriteRenderer visual = CreateSprite("Cursed Dumpling " + i, sprite, definition.Color, 2);
-                visual.transform.position = point.position;
-                visual.transform.localScale = Vector3.one * definition.Size;
-                Rigidbody2D body = visual.gameObject.AddComponent<Rigidbody2D>();
-                body.bodyType = RigidbodyType2D.Kinematic;
-                body.useFullKinematicContacts = true;
-                body.constraints = RigidbodyConstraints2D.FreezeRotation;
-                body.interpolation = RigidbodyInterpolation2D.Interpolate;
-                body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-                visual.gameObject.AddComponent<BoxCollider2D>();
-                MonsterTargeting targeting = visual.gameObject.AddComponent<MonsterTargeting>();
-                SetReference(targeting, "_definition", definition);
-                SetReference(targeting, "_player", player.transform);
-                SetReference(targeting, "_playerHealth", playerHealth);
-                SetReference(targeting, "_truck", truck);
-                Monster monster = visual.gameObject.AddComponent<Monster>();
-                SetReference(monster, "_definition", definition);
-                MonsterAttack attack = visual.gameObject.AddComponent<MonsterAttack>();
-                SetReference(attack, "_definition", definition);
-                SetReference(attack, "_player", playerHealth);
-                SetReference(attack, "_playerCollider", playerCollider);
-                SetReference(attack, "_truck", truck);
-                SetReference(attack, "_truckHealth", truckHealth);
-                MonsterTruckRoutine truckRoutine = visual.gameObject.AddComponent<MonsterTruckRoutine>();
-                SetReference(truckRoutine, "_definition", definition);
-                SetReference(truckRoutine, "_truck", truck);
-                SetReference(truckRoutine, "_map", arena);
-                SetReference(targeting, "_truckRoutine", truckRoutine);
-                SetReference(attack, "_truckRoutine", truckRoutine);
-                MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
+                Monster monster = CreateMonster("Cursed Dumpling " + i, sprite, definition, point.position,
+                    truck, arena, truckHealth, playerHealth, playerCollider);
+                MonsterDrops dropsComponent = monster.gameObject.AddComponent<MonsterDrops>();
                 SetReference(dropsComponent, "_dropTable", drops);
                 SetReference(dropsComponent, "_tuning", backpackTuning);
                 SetReference(dropsComponent, "_sprite", sprite);
@@ -271,7 +245,111 @@ namespace MMF.Editor
                 monsters.GetArrayElementAtIndex(i).objectReferenceValue = monster;
             }
             spawnData.ApplyModifiedPropertiesWithoutUndo();
+            CreateCustomers(sprite, truck, arena, truckHealth, playerHealth, playerCollider);
             AssetDatabase.SaveAssets();
+        }
+
+        private static void CreateCustomers(Sprite sprite, TruckArea truck, MapBounds arena,
+            TruckHealth truckHealth, PlayerHealth playerHealth, Collider2D playerCollider)
+        {
+            string path = Root + "/Data/Monsters/Customer.asset";
+            MonsterDefinition definition = AssetDatabase.LoadAssetAtPath<MonsterDefinition>(path);
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+                SerializedObject data = new SerializedObject(definition);
+                data.FindProperty("_color").colorValue = new Color(1f, 0.45f, 0.75f);
+                data.ApplyModifiedPropertiesWithoutUndo();
+                AssetDatabase.CreateAsset(definition, path);
+            }
+
+            CustomerSpawner spawner = new GameObject("Customer Spawner").AddComponent<CustomerSpawner>();
+            Monster template = CreateMonster("Customer Template", sprite, definition, truck.transform.position,
+                truck, arena, truckHealth, playerHealth, playerCollider);
+            template.gameObject.SetActive(false);
+            template.transform.SetParent(spawner.transform, true);
+            Customer customer = template.gameObject.AddComponent<Customer>();
+
+            Canvas icon = new GameObject("Hunger Icon", typeof(RectTransform)).AddComponent<Canvas>();
+            icon.renderMode = RenderMode.WorldSpace;
+            icon.sortingOrder = 3;
+            RectTransform iconRect = (RectTransform)icon.transform;
+            iconRect.SetParent(template.transform, false);
+            iconRect.localPosition = new Vector3(0f, 0.72f, 0f);
+            iconRect.localScale = Vector3.one * 0.01f;
+            iconRect.sizeDelta = new Vector2(40f, 40f);
+            Text label = UiText("Hunger Label", iconRect, iconRect.sizeDelta, Vector2.zero, 32);
+            label.text = "饿";
+            if (!label.font.HasCharacter('饿'))
+            {
+                label.enabled = false;
+                SpriteRenderer square = CreateSprite("Hunger Square", sprite, Color.white, 3);
+                square.transform.SetParent(template.transform, false);
+                square.transform.localPosition = iconRect.localPosition;
+                square.transform.localScale = Vector3.one * 0.25f;
+            }
+
+            EnsureFolder(Root + "/Data/Tuning");
+            string tuningPath = Root + "/Data/Tuning/CustomerTuning.asset";
+            CustomerTuning tuning = AssetDatabase.LoadAssetAtPath<CustomerTuning>(tuningPath);
+            if (tuning == null)
+            {
+                tuning = ScriptableObject.CreateInstance<CustomerTuning>();
+                AssetDatabase.CreateAsset(tuning, tuningPath);
+            }
+
+            SetReference(customer, "_tuning", tuning);
+            SetReference(customer, "_definition", definition);
+            SetReference(spawner, "_tuning", tuning);
+            SetReference(spawner, "_template", customer);
+            SerializedObject spawnData = new SerializedObject(spawner);
+            SerializedProperty points = spawnData.FindProperty("_spawnPoints");
+            Vector2[] offsets = { new Vector2(-6f, -7.5f), new Vector2(6f, -7.5f) };
+            points.arraySize = offsets.Length;
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                Transform point = new GameObject("Customer Spawn " + i).transform;
+                point.SetParent(spawner.transform, false);
+                point.position = truck.transform.position + (Vector3)offsets[i];
+                points.GetArrayElementAtIndex(i).objectReferenceValue = point;
+            }
+            spawnData.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static Monster CreateMonster(string name, Sprite sprite, MonsterDefinition definition,
+            Vector3 position, TruckArea truck, MapBounds arena, TruckHealth truckHealth,
+            PlayerHealth playerHealth, Collider2D playerCollider)
+        {
+            SpriteRenderer visual = CreateSprite(name, sprite, definition.Color, 2);
+            visual.transform.position = position;
+            visual.transform.localScale = Vector3.one * definition.Size;
+            Rigidbody2D body = visual.gameObject.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            body.useFullKinematicContacts = true;
+            body.constraints = RigidbodyConstraints2D.FreezeRotation;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            visual.gameObject.AddComponent<BoxCollider2D>();
+            MonsterTargeting targeting = visual.gameObject.AddComponent<MonsterTargeting>();
+            SetReference(targeting, "_definition", definition);
+            SetReference(targeting, "_player", playerHealth.transform);
+            SetReference(targeting, "_playerHealth", playerHealth);
+            SetReference(targeting, "_truck", truck);
+            Monster monster = visual.gameObject.AddComponent<Monster>();
+            SetReference(monster, "_definition", definition);
+            MonsterAttack attack = visual.gameObject.AddComponent<MonsterAttack>();
+            SetReference(attack, "_definition", definition);
+            SetReference(attack, "_player", playerHealth);
+            SetReference(attack, "_playerCollider", playerCollider);
+            SetReference(attack, "_truck", truck);
+            SetReference(attack, "_truckHealth", truckHealth);
+            MonsterTruckRoutine truckRoutine = visual.gameObject.AddComponent<MonsterTruckRoutine>();
+            SetReference(truckRoutine, "_definition", definition);
+            SetReference(truckRoutine, "_truck", truck);
+            SetReference(truckRoutine, "_map", arena);
+            SetReference(targeting, "_truckRoutine", truckRoutine);
+            SetReference(attack, "_truckRoutine", truckRoutine);
+            return monster;
         }
 
         private static DropTable LoadMonsterDrops()
@@ -303,7 +381,7 @@ namespace MMF.Editor
         private static ItemDefinition LoadMonsterPart(string id, string displayName, Color color)
         {
             Color friedColor = color * new Color(0.65f, 0.65f, 0.65f, 1f);
-            ItemDefinition fried = LoadItem("Fried" + id, "煎" + displayName, friedColor);
+            ItemDefinition fried = LoadItem("Fried" + id, "煎" + displayName, friedColor, feedsCustomer: true);
             ConfigureMonsterPart(fried, "Fried" + id, "煎" + displayName, friedColor, null);
             ItemDefinition raw = LoadItem(id, displayName, color);
             ConfigureMonsterPart(raw, id, displayName, color, fried);
@@ -527,16 +605,23 @@ namespace MMF.Editor
             return weapon;
         }
 
-        private static ItemDefinition LoadItem(string id, string displayName, Color color)
+        private static ItemDefinition LoadItem(string id, string displayName, Color color, bool feedsCustomer = false)
         {
             string path = Root + "/Data/Items/" + id + ".asset";
             ItemDefinition item = AssetDatabase.LoadAssetAtPath<ItemDefinition>(path);
-            if (item != null) return item;
+            if (item != null)
+            {
+                SerializedObject existingData = new SerializedObject(item);
+                existingData.FindProperty("_feedsCustomer").boolValue = feedsCustomer;
+                existingData.ApplyModifiedPropertiesWithoutUndo();
+                return item;
+            }
             item = ScriptableObject.CreateInstance<ItemDefinition>();
             SerializedObject data = new SerializedObject(item);
             data.FindProperty("_id").stringValue = id;
             data.FindProperty("_displayName").stringValue = displayName;
             data.FindProperty("_color").colorValue = color;
+            data.FindProperty("_feedsCustomer").boolValue = feedsCustomer;
             data.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.CreateAsset(item, path);
             return item;
@@ -653,13 +738,12 @@ namespace MMF.Editor
             SetReference(screen, "_overlay", overlay.gameObject);
         }
 
-        private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow)
+        private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow, Camera camera)
         {
-            Transform canvas = backpackRow.parent;
             ItemDefinition meat = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/MonsterMeat.asset");
             ItemDefinition mushroom = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/Mushroom.asset");
-            ItemDefinition friedMeat = LoadItem("FriedMonsterMeat", "煎怪肉", meat.Color * new Color(0.65f, 0.65f, 0.65f, 1f));
-            ItemDefinition friedMushroom = LoadItem("FriedMushroom", "煎蘑菇", mushroom.Color * new Color(0.65f, 0.65f, 0.65f, 1f));
+            ItemDefinition friedMeat = LoadItem("FriedMonsterMeat", "煎怪肉", meat.Color * new Color(0.65f, 0.65f, 0.65f, 1f), feedsCustomer: true);
+            ItemDefinition friedMushroom = LoadItem("FriedMushroom", "煎蘑菇", mushroom.Color * new Color(0.65f, 0.65f, 0.65f, 1f), feedsCustomer: true);
             ItemDefinition burnt = LoadItem("Burnt", "焦土", new Color(0.15f, 0.08f, 0.04f));
             // Only set defaults on raw definitions; keep subsequent Inspector tuning.
             if (meat.FryingResult == null) SetReference(meat, "_fryingResult", friedMeat);
@@ -669,26 +753,17 @@ namespace MMF.Editor
             stationBody.gameObject.AddComponent<BoxCollider2D>().size = Vector2.one;
             FryingStation station = stationBody.gameObject.AddComponent<FryingStation>();
             SetReference(station, "_tuning", LoadCookingTuning());
+            SetReference(station, "_truck", truck);
             SpriteRenderer food = CreateSprite("Pan Contents", sprite, Color.white, 4);
             food.transform.SetParent(station.transform, false); food.transform.localScale = Vector3.one * 0.4f;
             food.enabled = false; SetReference(station, "_food", food); SetReference(station, "_burntItem", burnt);
 
-            FryingPanel panel = canvas.gameObject.AddComponent<FryingPanel>();
-            SetReference(panel, "_tuning", LoadCookingTuning());
-            RectTransform view = UiRect("Frying View", canvas, Vector2.zero, Vector2.zero);
-            view.anchorMin = new Vector2(2f / 3f, 0f); view.anchorMax = Vector2.one;
-            view.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 1f);
-            RectTransform panRect = UiRect("Pan", view, new Vector2(280f, 280f), Vector2.zero);
-            Image pan = panRect.gameObject.AddComponent<Image>(); pan.sprite = LoadMark(true); pan.color = new Color(0.3f, 0.32f, 0.35f);
-            Image foodImage = UiRect("Food", panRect, new Vector2(90f, 90f), Vector2.zero).gameObject.AddComponent<Image>();
-            Text letters = UiText("Letters", view, new Vector2(400f, 60f), new Vector2(0f, -190f), 34);
-            Text status = UiText("Side and Timer", view, new Vector2(400f, 120f), new Vector2(0f, 220f), 24);
-            SetReference(panel, "_backpackRow", backpackRow);
-            SetReference(panel, "_view", view); SetReference(panel, "_pan", pan);
-            SetReference(panel, "_food", foodImage); SetReference(panel, "_letters", letters);
-            SetReference(panel, "_status", status); SetReference(panel, "_panSprite", pan.sprite);
             PlayerInteractor interactor = backpack.GetComponent<PlayerInteractor>();
-            SetReference(interactor, "_station", station); SetReference(interactor, "_panel", panel); SetReference(interactor, "_truck", truck);
+            PanCooking panCooking = station.gameObject.AddComponent<PanCooking>();
+            SetReference(panCooking, "_station", station);
+            SetReference(panCooking, "_tuning", LoadCookingTuning());
+            CreatePanCookingViews(panCooking, station, backpack, camera, LoadMark(true), backpackRow);
+            SetReference(interactor, "_station", station); SetReference(interactor, "_truck", truck);
             var preview = new GameObject("Placement Preview").AddComponent<UnityEngine.Rendering.SortingGroup>();
             preview.sortingOrder = 1;
             SpriteRenderer shadow = CreateSprite("Placement Shadow", stationBody.sprite,
@@ -700,8 +775,109 @@ namespace MMF.Editor
             SetReference(interactor, "_stationRenderer", stationBody);
             SetReference(interactor, "_placementShadow", shadow);
             SetReference(interactor, "_placementFailure", failure);
-            view.gameObject.SetActive(false); AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssets();
         }
+        private static void CreatePanCookingViews(PanCooking panCooking, FryingStation station,
+            PlayerBackpack backpack, Camera camera, Sprite panSprite, RectTransform backpackRow)
+        {
+            RectTransform rect = UiRect("Pan Cooking Canvas", station.transform, new Vector2(300f, 300f), Vector2.zero);
+            Canvas canvas = rect.gameObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = camera;
+            canvas.sortingOrder = 50;
+            CanvasScaler scaler = rect.gameObject.AddComponent<CanvasScaler>();
+            scaler.dynamicPixelsPerUnit = 4f;
+
+            PanCookingView worldView = CreatePanCookingView(panCooking, station, backpack, backpackRow,
+                canvas, rect, rect, panSprite);
+
+            Canvas overlay = backpackRow.parent.GetComponent<Canvas>();
+            RectTransform panel = UiRect("Right Pan Panel", overlay.transform, Vector2.zero, Vector2.zero);
+            panel.anchorMin = new Vector2(2f / 3f, 0f);
+            panel.anchorMax = Vector2.one;
+            panel.SetAsFirstSibling();
+            Image background = panel.gameObject.AddComponent<Image>();
+            background.color = new Color(0.12f, 0.13f, 0.15f);
+            background.raycastTarget = false;
+            RectTransform rightPan = UiRect("Right Pan", panel, rect.sizeDelta, Vector2.zero);
+            rightPan.localScale = Vector3.one * (280f / rect.sizeDelta.x);
+            PanCookingView rightView = CreatePanCookingView(panCooking, station, backpack, backpackRow,
+                overlay, panel, rightPan, panSprite);
+
+            Image dragIcon = UiRect("Pan Drag Icon", backpackRow.parent,
+                new Vector2(24f, 24f), Vector2.zero).gameObject.AddComponent<Image>();
+            dragIcon.raycastTarget = false;
+            dragIcon.enabled = false;
+
+            PlayerInputReader input = backpack.GetComponent<PlayerInputReader>();
+            PanDragInput drag = backpack.gameObject.AddComponent<PanDragInput>();
+            SetReference(input, "_panDrag", drag);
+            SetReference(drag, "_input", input);
+            SetReference(drag, "_backpack", backpack);
+            SetReference(drag, "_bar", backpackRow.parent.GetComponent<BackpackBar>());
+            SetReference(drag, "_pan", panCooking);
+            SetReference(drag, "_worldView", worldView);
+            SetReference(drag, "_rightView", rightView);
+            SetReference(drag, "_icon", dragIcon);
+        }
+
+        private static PanCookingView CreatePanCookingView(PanCooking panCooking, FryingStation station,
+            PlayerBackpack backpack, RectTransform backpackRow, Canvas canvas, RectTransform hitRect,
+            RectTransform rect, Sprite panSprite)
+        {
+            Color panColor = new Color(0.3f, 0.32f, 0.35f);
+            Image pan = rect.gameObject.AddComponent<Image>();
+            pan.sprite = panSprite;
+            pan.color = panColor;
+
+            Sprite disk = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            RectTransform ring = UiRect("Cooking Progress", rect, new Vector2(158f, 158f), Vector2.zero);
+            Image progress = ring.gameObject.AddComponent<Image>();
+            progress.sprite = disk;
+            progress.color = new Color(0.98f, 0.79f, 0.34f);
+            progress.type = Image.Type.Filled;
+            progress.fillMethod = Image.FillMethod.Radial360;
+            progress.fillOrigin = (int)Image.Origin360.Top;
+            Image center = UiRect("Ring Center", ring, new Vector2(136f, 136f), Vector2.zero).gameObject.AddComponent<Image>();
+            center.sprite = disk;
+            center.color = panColor;
+            progress.raycastTarget = center.raycastTarget = false;
+
+            Image food = UiRect("Food", rect, new Vector2(88f, 88f), Vector2.zero).gameObject.AddComponent<Image>();
+            Text flipHint = UiText("Flip Hint", rect, new Vector2(90f, 52f), new Vector2(91f, 48f), 32);
+            flipHint.text = "翻！";
+
+            Image[] smoke = new Image[3];
+            for (int i = 0; i < smoke.Length; i++)
+            {
+                RectTransform smokeRect = UiRect("Smoke " + (i + 1), rect, new Vector2(16f, 16f), Vector2.zero);
+                smoke[i] = smokeRect.gameObject.AddComponent<Image>();
+                smoke[i].raycastTarget = false;
+            }
+
+            PanCookingView view = station.gameObject.AddComponent<PanCookingView>();
+            SetReference(view, "_pan", panCooking);
+            SetReference(view, "_station", station);
+            SetReference(view, "_player", backpack.transform);
+            SetReference(view, "_tuning", LoadCookingTuning());
+            SetReference(view, "_canvas", canvas);
+            SetReference(view, "_hitRect", hitRect);
+            SetReference(view, "_panRect", rect);
+            SetReference(view, "_backpackRow", backpackRow);
+            SetReference(view, "_food", food);
+            SetReference(view, "_progressRing", ring);
+            SetReference(view, "_progress", progress);
+            SetReference(view, "_flipHint", flipHint);
+            SerializedObject viewData = new SerializedObject(view);
+            SerializedProperty particles = viewData.FindProperty("_smoke");
+            particles.arraySize = smoke.Length;
+            for (int i = 0; i < smoke.Length; i++)
+                particles.GetArrayElementAtIndex(i).objectReferenceValue = smoke[i];
+            viewData.ApplyModifiedPropertiesWithoutUndo();
+            hitRect.gameObject.SetActive(false);
+            return view;
+        }
+
         private static RectTransform UiRect(string name, Transform parent, Vector2 size, Vector2 position)
         {
             RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();

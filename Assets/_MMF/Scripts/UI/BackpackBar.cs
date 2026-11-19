@@ -38,6 +38,15 @@ namespace MMF.UI
             _backpack.ContentsChanged += Refresh; _backpack.SelectionChanged += Refresh;
             Refresh();
         }
+        /// <summary>Returns the slot under a screen point, or -1 outside the slots.</summary>
+        public int SlotAtScreenPoint(Vector2 point)
+        {
+            if (!isActiveAndEnabled || _backgrounds == null) return -1;
+            for (int i = 0; i < _backgrounds.Length; i++)
+                if (RectTransformUtility.RectangleContainsScreenPoint(_backgrounds[i].rectTransform, point, null))
+                    return i;
+            return -1;
+        }
         private static RectTransform Rect(string name, Transform parent, Vector2 size)
         {
             RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();

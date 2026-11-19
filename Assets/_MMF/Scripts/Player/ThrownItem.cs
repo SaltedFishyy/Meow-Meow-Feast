@@ -16,6 +16,7 @@ namespace MMF.Player
         private ThrowTuning _tuning;
         private BoxCollider2D[] _walls;
         private BoxCollider2D[] _monsterColliders;
+        private Customer[] _customers;
         private Vector2 _direction;
         private Vector2 _halfSize;
         private float _speed;
@@ -35,8 +36,12 @@ namespace MMF.Player
             // Spawners reuse these monsters by deactivating/reactivating them on death/respawn.
             Monster[] monsters = FindObjectsByType<Monster>(FindObjectsInactive.Include);
             _monsterColliders = new BoxCollider2D[monsters.Length];
+            _customers = new Customer[monsters.Length];
             for (int i = 0; i < monsters.Length; i++)
+            {
                 _monsterColliders[i] = monsters[i].GetComponent<BoxCollider2D>();
+                _customers[i] = monsters[i].GetComponent<Customer>();
+            }
             _speed = velocity.magnitude;
             _direction = velocity.normalized;
             _glideTime = Mathf.Max(0f, airTime);
@@ -54,19 +59,19 @@ namespace MMF.Player
             if (IsGliding)
             {
                 float duration = Mathf.Min(remaining, _glideTime - _glideElapsed);
-                Move(duration, 0f);
+                if (Move(duration, 0f)) return;
                 _glideElapsed = Mathf.Min(_glideTime, _glideElapsed + duration);
                 remaining = Mathf.Max(0f, remaining - duration);
                 if (IsGliding) return;
             }
-            Move(remaining, Mathf.Max(0f, _tuning.Friction));
+            if (Move(remaining, Mathf.Max(0f, _tuning.Friction))) return;
             if (_speed > StopSpeed) return;
             _backpack.DropItem(_item, transform.position);
             gameObject.SetActive(false);
             Destroy(gameObject);
         }
 
-        private void Move(float remaining, float friction)
+        private bool Move(float remaining, float friction)
         {
             Vector2 position = transform.position;
             for (int impact = 0; impact < MaximumImpactsPerFrame && remaining > 0f && _speed > (IsGliding ? 0f : StopSpeed); impact++)
@@ -84,6 +89,7 @@ namespace MMF.Player
                 float nearest = distance;
                 float bounce = _tuning.Bounce;
                 Vector2 normal = Vector2.zero;
+                Customer customer = null;
                 for (int i = 0; i < _walls.Length + _monsterColliders.Length; i++)
                 {
                     BoxCollider2D wall = ObstacleAt(i);
@@ -104,7 +110,16 @@ namespace MMF.Player
                         normal = hitNormal;
                         bounce = obstacleBounce;
                     }
+                    Customer hitCustomer = i < _walls.Length ? null : _customers[i - _walls.Length];
+                    if (hit < nearest || customer == null) customer = hitCustomer;
                     nearest = hit;
+                }
+
+                if (_item.FeedsCustomer && customer != null && customer.TryFeed())
+                {
+                    gameObject.SetActive(false);
+                    Destroy(gameObject);
+                    return true;
                 }
 
                 position += _direction * nearest;
@@ -125,6 +140,7 @@ namespace MMF.Player
             }
             // If the impact budget is exhausted, discard this frame's unused time rather than tunnel.
             transform.position = new Vector3(position.x, position.y, transform.position.z);
+            return false;
         }
 
         private BoxCollider2D ObstacleAt(int index)

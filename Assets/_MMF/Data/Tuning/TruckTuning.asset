@@ -13,3 +13,6 @@ MonoBehaviour:
   m_Name: TruckTuning
   m_EditorClassIdentifier: MMF.Runtime::MMF.Data.TruckTuning
   _maxHealth: 100
+  _length: 12
+  _width: 7
+  _doorWidth: 2

@@ -5,6 +5,7 @@
                      "name":  "Gameplay",
                      "id":  "09b533cc-186e-4417-8113-2652f79b1504",
                      "actions":  [
+                                     { "name": "PlaceInPan", "type": "Button", "id": "864b8696-ef0d-4a4e-805f-a36b4709081b", "expectedControlType": "Button" },
                                      { "name": "Throw", "type": "Button", "id": "a7c9928c-d897-43cf-b1ad-5fe10031ef18", "expectedControlType": "Button" },
                                      {
                                          "name":  "Move",
@@ -58,45 +59,9 @@
                                          "expectedControlType":  "Button"
                                      },
                                      {
-                                         "name":  "FryA",
-                                         "type":  "Button",
-                                         "id":  "aea9ec1e-97f9-48aa-83a9-98dbd86213bc",
-                                         "expectedControlType":  "Button"
-                                     },
-                                     {
-                                         "name":  "FryD",
-                                         "type":  "Button",
-                                         "id":  "1c8b19f0-eca1-4c6e-b7c5-39c596caffc8",
-                                         "expectedControlType":  "Button"
-                                     },
-                                     {
-                                         "name":  "Interact",
-                                         "type":  "Button",
-                                         "id":  "bbba456f-784f-4bba-a01f-efd3c512a651",
-                                         "expectedControlType":  "Button"
-                                     },
-                                     {
-                                         "name":  "Cancel",
-                                         "type":  "Button",
-                                         "id":  "532e4ab2-9706-4bd9-99ba-59c4ce1a46cb",
-                                         "expectedControlType":  "Button"
-                                     },
-                                     {
                                          "name":  "Lift",
                                          "type":  "Button",
                                          "id":  "bfd983ec-bb18-45ed-8f89-cdcdf58ddb52",
-                                         "expectedControlType":  "Button"
-                                     },
-                                     {
-                                         "name":  "FryS",
-                                         "type":  "Button",
-                                         "id":  "dd9a1ce6-ea35-4ef7-86ab-4a0f6f3b91c4",
-                                         "expectedControlType":  "Button"
-                                     },
-                                     {
-                                         "name":  "FryW",
-                                         "type":  "Button",
-                                         "id":  "4ded18ef-6834-471b-a89b-29b7fe01d43a",
                                          "expectedControlType":  "Button"
                                      },
                                      {
@@ -107,6 +72,7 @@
                                      }
                                  ],
                      "bindings":  [
+                                      { "id": "e48f0422-7182-42c6-ad08-2fd26ae3fdf5", "path": "<Keyboard>/e", "action": "PlaceInPan" },
                                       { "id": "3473dd12-bd6b-4ddb-b443-141b69e02f27", "path": "<Mouse>/rightButton", "action": "Throw" },
                                       {
                                           "name":  "WASD",
@@ -205,39 +171,9 @@
                                           "action":  "Drop"
                                       },
                                       {
-                                          "id":  "59e1a150-63d4-4cc1-b798-12c959dd9d6c",
-                                          "path":  "\u003cKeyboard\u003e/a",
-                                          "action":  "FryA"
-                                      },
-                                      {
-                                          "id":  "273b2177-0a3c-475f-9919-f9e72a3bcd86",
-                                          "path":  "\u003cKeyboard\u003e/d",
-                                          "action":  "FryD"
-                                      },
-                                      {
-                                          "id":  "6fc16027-dd60-4946-8bb7-e5f92ada50eb",
-                                          "path":  "\u003cKeyboard\u003e/e",
-                                          "action":  "Interact"
-                                      },
-                                      {
-                                          "id":  "e5abfddb-aab3-432d-94f2-61a98be87c07",
-                                          "path":  "\u003cKeyboard\u003e/escape",
-                                          "action":  "Cancel"
-                                      },
-                                      {
                                           "id":  "06a75415-a9d8-4214-a995-e73959f04912",
                                           "path":  "\u003cMouse\u003e/leftButton",
                                           "action":  "Lift"
-                                      },
-                                      {
-                                          "id":  "88aeecc1-7032-4199-b627-9a412c23ce3a",
-                                          "path":  "\u003cKeyboard\u003e/s",
-                                          "action":  "FryS"
-                                      },
-                                      {
-                                          "id":  "289af5c7-1023-4f8f-bad7-2568a5569eb5",
-                                          "path":  "\u003cKeyboard\u003e/w",
-                                          "action":  "FryW"
                                       },
                                       {
                                           "id":  "8937fc02-6beb-4a00-b27f-4053dfcd5928",

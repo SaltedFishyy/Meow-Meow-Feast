@@ -1,4 +1,5 @@
 using MMF.Combat;
+using MMF.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,6 +11,8 @@ namespace MMF.Player
     public sealed class PlayerInputReader : MonoBehaviour
     {
         [SerializeField] private InputActionAsset _controls = null;
+
+        [SerializeField] private PanDragInput _panDrag = null;
 
         private InputActionAsset _controlsInstance;
         private InputAction _moveAction;
@@ -43,12 +46,11 @@ namespace MMF.Player
             for (int i = 0; i < 5; i++)
             {
                 int slot = i;
-                _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => { if (_interactor == null || !_interactor.Cooking) _backpack?.SelectSlot(slot); };
+                _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => _backpack?.SelectSlot(slot);
             }
-            _gameplay.FindAction("ScrollSlot", true).performed += context => { if (_interactor == null || !_interactor.Cooking) _backpack?.ScrollSlot(context.ReadValue<float>()); };
+            _gameplay.FindAction("ScrollSlot", true).performed += context => _backpack?.ScrollSlot(context.ReadValue<float>());
+            _gameplay.FindAction("PlaceInPan", true).performed += context => _panDrag?.TryPlaceSelected();
             _gameplay.FindAction("Drop", true).performed += context => { if (_interactor == null || _interactor.CanDrop) _backpack?.Drop(); };
-            _gameplay.FindAction("Interact", true).performed += context => _interactor?.Interact();
-            _gameplay.FindAction("Cancel", true).performed += context => _interactor?.Cancel();
             _gameplay.FindAction("Throw", true).performed += context => _throw?.TryStartCharge();
             _gameplay.FindAction("Throw", true).canceled += context =>
             {
@@ -57,16 +59,12 @@ namespace MMF.Player
             };
             _gameplay.FindAction("Lift", true).performed += context =>
             {
+                if (context.control.device is Mouse mouse && _panDrag != null && _panDrag.TryHandlePress(mouse)) return;
                 if (_throw != null && _throw.Charging) { _throw.Cancel(); return; }
                 if (_interactor == null || _interactor.Lift()) return;
                 if (_attack != null && TryGetMouseWorldPosition(out Vector2 worldPosition))
                     _attack.TryAttack(worldPosition);
             };
-            foreach (char key in "WASD")
-            {
-                char letter = key;
-                _gameplay.FindAction("Fry" + letter, true).performed += context => _interactor?.Press(letter);
-            }
             _moveAction.performed += OnMove;
             _moveAction.canceled += OnMove;
         }

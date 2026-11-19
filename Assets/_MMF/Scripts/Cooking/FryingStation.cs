@@ -10,6 +10,7 @@ namespace MMF.Cooking
         [SerializeField] private SpriteRenderer _food = null;
         [SerializeField] private CookingTuning _tuning = null;
         private BoxCollider2D _collider;
+        private ItemDefinition _displayedItem;
         private BoxCollider2D Collider
         {
             get
@@ -18,12 +19,6 @@ namespace MMF.Cooking
                 return _collider;
             }
         }
-        /// <summary>Raised after the station stores and displays its contents.</summary>
-        public event System.Action ContentsChanged;
-
-        public ItemDefinition Item { get; private set; }
-        public int Count { get; private set; }
-        public int ItemsPerBatch => _tuning.ItemsPerBatch;
         public ItemDefinition BurntItem => _burntItem;
         public Vector2 Size => Vector2.Scale(Collider.size, transform.lossyScale);
         private void Awake() { _collider = GetComponent<BoxCollider2D>(); }
@@ -37,15 +32,13 @@ namespace MMF.Cooking
             Vector2 world = transform.TransformPoint(closest + Collider.offset);
             return (player - world).sqrMagnitude <= _tuning.InteractionDistance * _tuning.InteractionDistance;
         }
-        /// <summary>Creates a session using this station tuning.</summary>
-        public FryingSequence CreateSequence() => new FryingSequence(_tuning.LettersPerRound, _tuning.RoundSeconds, new System.Random());
-        /// <summary>Stores a batch and refreshes its visible marker.</summary>
-        public void SetContents(ItemDefinition item, int count)
+        /// <summary>Updates the station's visible food marker.</summary>
+        public void SetContents(ItemDefinition item)
         {
-            Item = count > 0 ? item : null; Count = count;
-            _food.enabled = Item != null;
-            if (Item != null) _food.color = Item.Color;
-            ContentsChanged?.Invoke();
+            if (_displayedItem == item) return;
+            _displayedItem = item;
+            _food.enabled = item != null;
+            if (item != null) _food.color = item.Color;
         }
         /// <summary>Removes collision while carried.</summary>
         public void SetCarried(bool carried) { Collider.enabled = !carried; }

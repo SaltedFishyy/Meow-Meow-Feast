@@ -46,12 +46,10 @@ namespace MMF.Player
             for (int i = 0; i < 5; i++)
             {
                 int slot = i;
-                _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => { if (_interactor == null || !_interactor.Cooking) _backpack?.SelectSlot(slot); };
+                _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => _backpack?.SelectSlot(slot);
             }
-            _gameplay.FindAction("ScrollSlot", true).performed += context => { if (_interactor == null || !_interactor.Cooking) _backpack?.ScrollSlot(context.ReadValue<float>()); };
+            _gameplay.FindAction("ScrollSlot", true).performed += context => _backpack?.ScrollSlot(context.ReadValue<float>());
             _gameplay.FindAction("Drop", true).performed += context => { if (_interactor == null || _interactor.CanDrop) _backpack?.Drop(); };
-            _gameplay.FindAction("Interact", true).performed += context => _interactor?.Interact();
-            _gameplay.FindAction("Cancel", true).performed += context => _interactor?.Cancel();
             _gameplay.FindAction("Throw", true).performed += context => _throw?.TryStartCharge();
             _gameplay.FindAction("Throw", true).canceled += context =>
             {
@@ -66,11 +64,6 @@ namespace MMF.Player
                 if (_attack != null && TryGetMouseWorldPosition(out Vector2 worldPosition))
                     _attack.TryAttack(worldPosition);
             };
-            foreach (char key in "WASD")
-            {
-                char letter = key;
-                _gameplay.FindAction("Fry" + letter, true).performed += context => _interactor?.Press(letter);
-            }
             _moveAction.performed += OnMove;
             _moveAction.canceled += OnMove;
         }

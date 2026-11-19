@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-11-18 · T014d · 删掉旧版煎锅（E 键 + WASD 按字母煎）
+
+**做了什么**（Codex 编写，Claude 审查 + 1 处小改，一次通过）
+- 用户试玩新版说好玩，删旧版：删除 `UI/FryingPanel`、`Cooking/FryingSequence`、`Tests/EditMode/FryingSequenceTests`（连同 `.meta`）。
+- `PlayerInteractor` 只剩搬锅台（举起 / 放下 / 预览 / 倒地放下），`CanDrop` 只看是否举着；`PlayerInputReader` 去掉 E / Esc / 煎用 WASD 的订阅和"正在煎"时禁用 1–5、滚轮的判断；`PlayerDowned` 去掉退出煎菜。
+- `PanCooking` 去掉和旧版并存的部分（`_legacyInteractor`、旧批量拿回、`ContentsChanged` 同步），`PanCookingModel.SetExternalContents` 删除；`FryingStation` 只剩显示锅里小方块的 `SetContents(item)`（只在物品变化时刷新）、`BurntItem`、`InRange`、`SetCarried`。
+- `CookingTuning` 删掉"一次放几个""每轮几个字母""每轮几秒"；`CookingTuning.asset` 没动（多出的旧字段不影响）。
+- `MMFControls.inputactions` 删掉 `Interact`、`Cancel`、`FryW/A/S/D`；生成器不再建旧画面。美术资源一个没删（锅图新版在用）。
+- GDD §5.5.1 已改成只有新版 + "搬锅台"，其他提到旧版的地方一起改了。
+
+**Claude 的小改**：`PlayerBackpack.TakeSelected` 只有旧版用，删掉。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；场景生成 3 次，引用 187 个、空 0 个；84 个测试全部通过（删掉 23 个旧版测试）。全项目 grep 不到旧版的名字（`Assets/Settings/InputSystem_Actions.inputactions` 是 Unity 自带的默认输入文件，不是我们的）。
+- Play：拖进锅、锅台小方块显示、划第 1 次翻面、不翻会焦；第 2 次翻 → 煎蘑菇进背包（模拟鼠标时 Unity 被切到后台，这一步改用直接调用验证）；E / Esc 没反应；左键举起锅台（举着时不能丢）、再点放下。进出 Play 没有报错。
+
+---
+
 ## 2026-11-18 · T014c2 · 新版煎锅 3b：鼠标划一下翻面、煎好进背包
 
 **做了什么**（Codex 编写，Claude 审查，一次通过）

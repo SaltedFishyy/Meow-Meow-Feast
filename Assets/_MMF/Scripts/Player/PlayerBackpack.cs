@@ -64,8 +64,6 @@ namespace MMF.Player
             if (item == null) return false;
             _definitions[item.Id] = item; return Model.TryAdd(item.Id);
         }
-        /// <summary>Removes one item from the selected slot.</summary>
-        public void TakeSelected() { Model.TryDrop(out _); }
         /// <summary>Temporarily replaces the held marker with a red failure mark.</summary>
         public void ShowFailure() { _failureUntil = Time.time + _tuning.FailureSeconds; RefreshIcon(); }
         /// <summary>Creates a ground item with the same pickup delay as Q.</summary>

@@ -50,7 +50,7 @@ namespace MMF.Editor
                 Debug.LogError("Cannot build prototype: MMFControls/Gameplay/Move is missing.");
                 return;
             }
-            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Interact", "Cancel", "Lift", "Throw", "FryW", "FryA", "FryS", "FryD", "Restart" };
+            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Lift", "Throw", "Restart" };
             foreach (string action in requiredActions)
                 if (controls.FindAction("Gameplay/" + action) == null)
                 {
@@ -655,7 +655,6 @@ namespace MMF.Editor
 
         private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow, Camera camera)
         {
-            Transform canvas = backpackRow.parent;
             ItemDefinition meat = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/MonsterMeat.asset");
             ItemDefinition mushroom = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/Mushroom.asset");
             ItemDefinition friedMeat = LoadItem("FriedMonsterMeat", "煎怪肉", meat.Color * new Color(0.65f, 0.65f, 0.65f, 1f));
@@ -673,27 +672,12 @@ namespace MMF.Editor
             food.transform.SetParent(station.transform, false); food.transform.localScale = Vector3.one * 0.4f;
             food.enabled = false; SetReference(station, "_food", food); SetReference(station, "_burntItem", burnt);
 
-            FryingPanel panel = canvas.gameObject.AddComponent<FryingPanel>();
-            SetReference(panel, "_tuning", LoadCookingTuning());
-            RectTransform view = UiRect("Frying View", canvas, Vector2.zero, Vector2.zero);
-            view.anchorMin = new Vector2(2f / 3f, 0f); view.anchorMax = Vector2.one;
-            view.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.09f, 0.12f, 1f);
-            RectTransform panRect = UiRect("Pan", view, new Vector2(280f, 280f), Vector2.zero);
-            Image pan = panRect.gameObject.AddComponent<Image>(); pan.sprite = LoadMark(true); pan.color = new Color(0.3f, 0.32f, 0.35f);
-            Image foodImage = UiRect("Food", panRect, new Vector2(90f, 90f), Vector2.zero).gameObject.AddComponent<Image>();
-            Text letters = UiText("Letters", view, new Vector2(400f, 60f), new Vector2(0f, -190f), 34);
-            Text status = UiText("Side and Timer", view, new Vector2(400f, 120f), new Vector2(0f, 220f), 24);
-            SetReference(panel, "_backpackRow", backpackRow);
-            SetReference(panel, "_view", view); SetReference(panel, "_pan", pan);
-            SetReference(panel, "_food", foodImage); SetReference(panel, "_letters", letters);
-            SetReference(panel, "_status", status); SetReference(panel, "_panSprite", pan.sprite);
             PlayerInteractor interactor = backpack.GetComponent<PlayerInteractor>();
             PanCooking panCooking = station.gameObject.AddComponent<PanCooking>();
             SetReference(panCooking, "_station", station);
             SetReference(panCooking, "_tuning", LoadCookingTuning());
-            SetReference(panCooking, "_legacyInteractor", interactor);
-            CreatePanCookingView(panCooking, station, backpack, camera, pan.sprite, backpackRow);
-            SetReference(interactor, "_station", station); SetReference(interactor, "_panel", panel); SetReference(interactor, "_truck", truck);
+            CreatePanCookingView(panCooking, station, backpack, camera, LoadMark(true), backpackRow);
+            SetReference(interactor, "_station", station); SetReference(interactor, "_truck", truck);
             var preview = new GameObject("Placement Preview").AddComponent<UnityEngine.Rendering.SortingGroup>();
             preview.sortingOrder = 1;
             SpriteRenderer shadow = CreateSprite("Placement Shadow", stationBody.sprite,
@@ -705,7 +689,7 @@ namespace MMF.Editor
             SetReference(interactor, "_stationRenderer", stationBody);
             SetReference(interactor, "_placementShadow", shadow);
             SetReference(interactor, "_placementFailure", failure);
-            view.gameObject.SetActive(false); AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssets();
         }
         private static void CreatePanCookingView(PanCooking panCooking, FryingStation station,
             PlayerBackpack backpack, Camera camera, Sprite panSprite, RectTransform backpackRow)

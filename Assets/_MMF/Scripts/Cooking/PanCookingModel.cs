@@ -103,11 +103,6 @@ namespace MMF.Cooking
                 Store(_burntItem, CookingState.Burnt);
         }
 
-        internal void SetExternalContents(ItemDefinition item)
-        {
-            Store(item, item == null ? CookingState.Empty : CookingState.Holding);
-        }
-
         private void StartSide(CookingState state)
         {
             _sideElapsed = 0d;

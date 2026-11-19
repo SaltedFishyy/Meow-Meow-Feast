@@ -59,7 +59,6 @@ namespace MMF.Player
             _throw.Cancel();
             _inputWasEnabled = _input.enabled;
             _input.enabled = false;
-            _interactor.Cancel();
             _movement.SetBlocked(true);
             _backpackWasEnabled = _backpack.enabled;
             _backpack.enabled = false;

@@ -15,13 +15,13 @@ namespace MMF.UI
         [SerializeField] private PlayerBackpack _backpack = null;
         [SerializeField] private BackpackBar _bar = null;
         [SerializeField] private PanCooking _pan = null;
-        [SerializeField] private Canvas _panCanvas = null;
-        [SerializeField] private Image _food = null;
+        [SerializeField] private PanCookingView _worldView = null;
+        [SerializeField] private PanCookingView _rightView = null;
         [SerializeField] private Image _icon = null;
         [SerializeField, Range(0f, 1f)] private float _minimumSwipeWidthRatio = 0.15f;
 
         private readonly Vector3[] _corners = new Vector3[4];
-        private RectTransform _panRect;
+        private PanCookingView _dragView;
         private RectTransform _foodRect;
         private RectTransform _iconRect;
         private RectTransform _iconParent;
@@ -34,13 +34,19 @@ namespace MMF.UI
         private bool _startedOnFood;
         private bool _swipeHitFood;
 
-        private bool CanDrag => isActiveAndEnabled && _input.isActiveAndEnabled &&
-                                _panCanvas.isActiveAndEnabled && Application.isFocused;
+        private bool CanDrag => isActiveAndEnabled && _input.isActiveAndEnabled && Application.isFocused;
+
+        private PanCookingView VisibleView => _rightView != null && _rightView.IsVisible
+            ? _rightView
+            : _worldView != null && _worldView.IsVisible ? _worldView : null;
+
+        private RectTransform HitRect => _dragView.HitRect;
+        private RectTransform PanRect => _dragView.PanRect;
+        private Image Food => _dragView.Food;
+        private Camera EventCamera => _dragView.EventCamera;
 
         private void Awake()
         {
-            _panRect = (RectTransform)_panCanvas.transform;
-            _foodRect = _food.rectTransform;
             _iconRect = _icon.rectTransform;
             _iconParent = (RectTransform)_iconRect.parent;
         }
@@ -48,21 +54,25 @@ namespace MMF.UI
         /// <summary>Consumes a press over the pan or a backpack slot while the pan is visible.</summary>
         public bool TryHandlePress(Mouse mouse)
         {
-            if (!CanDrag) return false;
+            PanCookingView view = VisibleView;
+            if (!CanDrag || view == null) return false;
 
             Vector2 point = mouse.position.ReadValue();
             int slot = _bar.SlotAtScreenPoint(point);
-            bool onPan = IsOverPan(point);
+            bool onPan = (_rightView == null || view != _rightView || slot < 0) &&
+                RectTransformUtility.RectangleContainsScreenPoint(view.HitRect, point, view.EventCamera);
             if (!onPan && slot < 0) return false;
 
             CancelDrag();
+            _dragView = view;
+            _foodRect = Food.rectTransform;
             if (onPan)
             {
                 slot = -1;
                 _pressPoint = _previousPoint = point;
-                _minimumSwipeDistance = GetScreenRect(_panRect).width * _minimumSwipeWidthRatio;
-                _startedOnFood = _food.enabled && RectTransformUtility.RectangleContainsScreenPoint(
-                    _foodRect, point, _panCanvas.worldCamera);
+                _minimumSwipeDistance = GetScreenRect(PanRect).width * _minimumSwipeWidthRatio;
+                _startedOnFood = Food.enabled && RectTransformUtility.RectangleContainsScreenPoint(
+                    _foodRect, point, EventCamera);
                 _swipeHitFood = _startedOnFood;
             }
 
@@ -73,7 +83,7 @@ namespace MMF.UI
             _sourceSlot = slot;
             _sourceItem = item;
             _iconRect.SetAsLastSibling();
-            UpdateIcon(point, slot < 0 ? _food.color : item.Color);
+            UpdateIcon(point, slot < 0 ? Food.color : item.Color);
             _icon.enabled = !onPan;
             return true;
         }
@@ -83,7 +93,8 @@ namespace MMF.UI
             if (_mouse == null) return;
 
             ItemDefinition item = _sourceSlot < 0 ? _pan.Item : _backpack.ItemAt(_sourceSlot);
-            if (!CanDrag || !_mouse.added || item == null || (_sourceSlot >= 0 && item != _sourceItem))
+            PanCookingView view = VisibleView;
+            if (!CanDrag || view == null || view != _dragView || !_mouse.added || item == null || (_sourceSlot >= 0 && item != _sourceItem))
             {
                 CancelDrag();
                 return;
@@ -93,22 +104,24 @@ namespace MMF.UI
             bool fromPan = _sourceSlot < 0;
             if (fromPan)
             {
-                if (!_swipeHitFood && _food.enabled)
+                if (!_swipeHitFood && Food.enabled)
                     _swipeHitFood = Intersects(_previousPoint, point, GetScreenRect(_foodRect));
                 _previousPoint = point;
             }
 
             if (_mouse.leftButton.isPressed)
             {
-                _icon.enabled = !fromPan || (_startedOnFood && !IsOverPan(point));
+                bool overBackpack = _dragView != null && _dragView == _rightView && _bar.SlotAtScreenPoint(point) >= 0;
+                _icon.enabled = !fromPan || (_startedOnFood && (overBackpack || !IsOverPan(point)));
                 if (_icon.enabled)
-                    UpdateIcon(point, fromPan ? _food.color : item.Color);
+                    UpdateIcon(point, fromPan ? Food.color : item.Color);
                 return;
             }
 
             int slot = _sourceSlot;
+            bool onPan = IsOverPan(point);
             CancelDrag();
-            if (slot >= 0 && IsOverPan(point))
+            if (slot >= 0 && onPan)
             {
                 if (_pan.TryPlace(item))
                     _backpack.Model.TryTakeOne(slot, out _);
@@ -144,7 +157,7 @@ namespace MMF.UI
         private Rect GetScreenRect(RectTransform rect)
         {
             rect.GetWorldCorners(_corners);
-            Camera camera = _panCanvas.worldCamera;
+            Camera camera = EventCamera;
             Vector2 min = RectTransformUtility.WorldToScreenPoint(camera, _corners[0]);
             Vector2 max = min;
             for (int i = 1; i < _corners.Length; i++)
@@ -178,7 +191,7 @@ namespace MMF.UI
         }
 
         private bool IsOverPan(Vector2 point) =>
-            RectTransformUtility.RectangleContainsScreenPoint(_panRect, point, _panCanvas.worldCamera);
+            RectTransformUtility.RectangleContainsScreenPoint(HitRect, point, EventCamera);
 
         private void UpdateIcon(Vector2 point, Color color)
         {
@@ -194,6 +207,7 @@ namespace MMF.UI
         {
             _mouse = null;
             _sourceItem = null;
+            _dragView = null;
             // Scene teardown can destroy the icon before this component is disabled.
             if (_icon != null) _icon.enabled = false;
         }

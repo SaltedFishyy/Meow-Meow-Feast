@@ -676,7 +676,7 @@ namespace MMF.Editor
             PanCooking panCooking = station.gameObject.AddComponent<PanCooking>();
             SetReference(panCooking, "_station", station);
             SetReference(panCooking, "_tuning", LoadCookingTuning());
-            CreatePanCookingView(panCooking, station, backpack, camera, LoadMark(true), backpackRow);
+            CreatePanCookingViews(panCooking, station, backpack, camera, LoadMark(true), backpackRow);
             SetReference(interactor, "_station", station); SetReference(interactor, "_truck", truck);
             var preview = new GameObject("Placement Preview").AddComponent<UnityEngine.Rendering.SortingGroup>();
             preview.sortingOrder = 1;
@@ -691,7 +691,7 @@ namespace MMF.Editor
             SetReference(interactor, "_placementFailure", failure);
             AssetDatabase.SaveAssets();
         }
-        private static void CreatePanCookingView(PanCooking panCooking, FryingStation station,
+        private static void CreatePanCookingViews(PanCooking panCooking, FryingStation station,
             PlayerBackpack backpack, Camera camera, Sprite panSprite, RectTransform backpackRow)
         {
             RectTransform rect = UiRect("Pan Cooking Canvas", station.transform, new Vector2(300f, 300f), Vector2.zero);
@@ -702,6 +702,43 @@ namespace MMF.Editor
             CanvasScaler scaler = rect.gameObject.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = 4f;
 
+            PanCookingView worldView = CreatePanCookingView(panCooking, station, backpack, backpackRow,
+                canvas, rect, rect, panSprite);
+
+            Canvas overlay = backpackRow.parent.GetComponent<Canvas>();
+            RectTransform panel = UiRect("Right Pan Panel", overlay.transform, Vector2.zero, Vector2.zero);
+            panel.anchorMin = new Vector2(2f / 3f, 0f);
+            panel.anchorMax = Vector2.one;
+            panel.SetAsFirstSibling();
+            Image background = panel.gameObject.AddComponent<Image>();
+            background.color = new Color(0.12f, 0.13f, 0.15f);
+            background.raycastTarget = false;
+            RectTransform rightPan = UiRect("Right Pan", panel, rect.sizeDelta, Vector2.zero);
+            rightPan.localScale = Vector3.one * (280f / rect.sizeDelta.x);
+            PanCookingView rightView = CreatePanCookingView(panCooking, station, backpack, backpackRow,
+                overlay, panel, rightPan, panSprite);
+
+            Image dragIcon = UiRect("Pan Drag Icon", backpackRow.parent,
+                new Vector2(24f, 24f), Vector2.zero).gameObject.AddComponent<Image>();
+            dragIcon.raycastTarget = false;
+            dragIcon.enabled = false;
+
+            PlayerInputReader input = backpack.GetComponent<PlayerInputReader>();
+            PanDragInput drag = backpack.gameObject.AddComponent<PanDragInput>();
+            SetReference(input, "_panDrag", drag);
+            SetReference(drag, "_input", input);
+            SetReference(drag, "_backpack", backpack);
+            SetReference(drag, "_bar", backpackRow.parent.GetComponent<BackpackBar>());
+            SetReference(drag, "_pan", panCooking);
+            SetReference(drag, "_worldView", worldView);
+            SetReference(drag, "_rightView", rightView);
+            SetReference(drag, "_icon", dragIcon);
+        }
+
+        private static PanCookingView CreatePanCookingView(PanCooking panCooking, FryingStation station,
+            PlayerBackpack backpack, RectTransform backpackRow, Canvas canvas, RectTransform hitRect,
+            RectTransform rect, Sprite panSprite)
+        {
             Color panColor = new Color(0.3f, 0.32f, 0.35f);
             Image pan = rect.gameObject.AddComponent<Image>();
             pan.sprite = panSprite;
@@ -738,6 +775,8 @@ namespace MMF.Editor
             SetReference(view, "_player", backpack.transform);
             SetReference(view, "_tuning", LoadCookingTuning());
             SetReference(view, "_canvas", canvas);
+            SetReference(view, "_hitRect", hitRect);
+            SetReference(view, "_panRect", rect);
             SetReference(view, "_backpackRow", backpackRow);
             SetReference(view, "_food", food);
             SetReference(view, "_progressRing", ring);
@@ -749,23 +788,8 @@ namespace MMF.Editor
             for (int i = 0; i < smoke.Length; i++)
                 particles.GetArrayElementAtIndex(i).objectReferenceValue = smoke[i];
             viewData.ApplyModifiedPropertiesWithoutUndo();
-            canvas.gameObject.SetActive(false);
-
-            Image dragIcon = UiRect("Pan Drag Icon", backpackRow.parent,
-                new Vector2(24f, 24f), Vector2.zero).gameObject.AddComponent<Image>();
-            dragIcon.raycastTarget = false;
-            dragIcon.enabled = false;
-
-            PlayerInputReader input = backpack.GetComponent<PlayerInputReader>();
-            PanDragInput drag = backpack.gameObject.AddComponent<PanDragInput>();
-            SetReference(input, "_panDrag", drag);
-            SetReference(drag, "_input", input);
-            SetReference(drag, "_backpack", backpack);
-            SetReference(drag, "_bar", backpackRow.parent.GetComponent<BackpackBar>());
-            SetReference(drag, "_pan", panCooking);
-            SetReference(drag, "_panCanvas", canvas);
-            SetReference(drag, "_food", food);
-            SetReference(drag, "_icon", dragIcon);
+            hitRect.gameObject.SetActive(false);
+            return view;
         }
 
         private static RectTransform UiRect(string name, Transform parent, Vector2 size, Vector2 position)

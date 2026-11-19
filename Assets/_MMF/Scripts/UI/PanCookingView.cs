@@ -6,7 +6,7 @@ using CookingState = MMF.Cooking.PanCookingModel.CookingState;
 
 namespace MMF.UI
 {
-    /// <summary>Displays the station's pan and its cooking cues in world space.</summary>
+    /// <summary>Displays the station's pan and its cooking cues in world or screen space.</summary>
     [DefaultExecutionOrder(100)]
     public sealed class PanCookingView : MonoBehaviour
     {
@@ -15,6 +15,8 @@ namespace MMF.UI
         [SerializeField] private Transform _player = null;
         [SerializeField] private CookingTuning _tuning = null;
         [SerializeField] private Canvas _canvas = null;
+        [SerializeField] private RectTransform _hitRect = null;
+        [SerializeField] private RectTransform _panRect = null;
         [SerializeField] private RectTransform _backpackRow = null;
         [SerializeField] private Image _food = null;
         [SerializeField] private RectTransform _progressRing = null;
@@ -32,18 +34,30 @@ namespace MMF.UI
         [SerializeField] private float _smokeSpacing = 22f;
 
         private RectTransform _foodRect;
-        private RectTransform _canvasRect;
+        private bool _screenSpace;
         private Camera _camera;
         private CookingState _state;
         private ItemDefinition _flippingItem;
         private bool _finalFlip;
         private float _flipStarted;
 
+        /// <summary>The visible area's hit target, including the right panel background.</summary>
+        public RectTransform HitRect => _hitRect;
+        /// <summary>The pan graphic used to measure swipe distance.</summary>
+        public RectTransform PanRect => _panRect;
+        /// <summary>The food graphic used for drags and swipe intersections.</summary>
+        public Image Food => _food;
+        /// <summary>The camera used to project this view's UI coordinates.</summary>
+        public Camera EventCamera => _camera;
+        /// <summary>Whether this view is selected by the live tuning switch and within reach.</summary>
+        public bool IsVisible => isActiveAndEnabled && _screenSpace == _tuning.PanViewOnRight &&
+            (_station.InRange(_player.position) || _station.transform.IsChildOf(_player));
+
         private void Awake()
         {
             _foodRect = _food.rectTransform;
-            _canvasRect = (RectTransform)_canvas.transform;
-            _camera = _canvas.worldCamera;
+            _screenSpace = _canvas.renderMode == RenderMode.ScreenSpaceOverlay;
+            _camera = _screenSpace ? null : _canvas.worldCamera;
         }
 
         private void Start()
@@ -82,9 +96,9 @@ namespace MMF.UI
                 _flippingItem = null;
 
             // Carried stations sit above the player, outside the interaction distance.
-            bool visible = _station.InRange(_player.position) || _station.transform.IsChildOf(_player);
-            if (_canvas.gameObject.activeSelf != visible)
-                _canvas.gameObject.SetActive(visible);
+            bool visible = IsVisible;
+            if (_hitRect.gameObject.activeSelf != visible)
+                _hitRect.gameObject.SetActive(visible);
             if (!visible)
                 return;
 
@@ -106,7 +120,7 @@ namespace MMF.UI
 
         private void LateUpdate()
         {
-            if (!_canvas.gameObject.activeSelf)
+            if (_screenSpace || !_hitRect.gameObject.activeSelf)
                 return;
 
             Rect viewport = _camera.pixelRect;
@@ -129,8 +143,8 @@ namespace MMF.UI
             center.x = Mathf.Clamp(center.x, viewport.xMin + half, viewport.xMax - half);
             center.y = Mathf.Clamp(center.y, bottom + half, viewport.yMax - half);
 
-            _canvasRect.localScale = Vector3.one * (_worldSize / _canvasRect.rect.width * (size / desiredSize));
-            _canvasRect.position = _camera.ScreenToWorldPoint(center);
+            _panRect.localScale = Vector3.one * (_worldSize / _panRect.rect.width * (size / desiredSize));
+            _panRect.position = _camera.ScreenToWorldPoint(center);
         }
 
 

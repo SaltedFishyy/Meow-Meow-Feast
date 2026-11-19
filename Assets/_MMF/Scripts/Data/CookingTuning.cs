@@ -14,6 +14,11 @@ namespace MMF.Data
         [SerializeField, TuningLabel("可以翻以后几秒焦"), Min(0.01f)] private float _burnSeconds = 5f;
         [SerializeField, TuningLabel("快焦提示提前几秒"), Min(0f)] private float _burnWarningSeconds = 2f;
 
+        [SerializeField, TuningLabel("锅画面在右边（试验）")] private bool _panViewOnRight = true;
+
+        /// <summary>Whether the pan is shown in the right-side panel.</summary>
+        public bool PanViewOnRight => _panViewOnRight;
+
         /// <summary>InteractionDistance used by components.</summary>
         public float InteractionDistance => _interactionDistance;
         /// <summary>FlipSeconds used by components.</summary>

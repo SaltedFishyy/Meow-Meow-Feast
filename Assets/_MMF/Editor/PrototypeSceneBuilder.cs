@@ -231,36 +231,9 @@ namespace MMF.Editor
                 Transform point = new GameObject("Monster Spawn " + i).transform;
                 point.SetParent(spawner.transform, false);
                 point.position = truck.transform.position + (Vector3)positions[i];
-                SpriteRenderer visual = CreateSprite("Cursed Dumpling " + i, sprite, definition.Color, 2);
-                visual.transform.position = point.position;
-                visual.transform.localScale = Vector3.one * definition.Size;
-                Rigidbody2D body = visual.gameObject.AddComponent<Rigidbody2D>();
-                body.bodyType = RigidbodyType2D.Kinematic;
-                body.useFullKinematicContacts = true;
-                body.constraints = RigidbodyConstraints2D.FreezeRotation;
-                body.interpolation = RigidbodyInterpolation2D.Interpolate;
-                body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-                visual.gameObject.AddComponent<BoxCollider2D>();
-                MonsterTargeting targeting = visual.gameObject.AddComponent<MonsterTargeting>();
-                SetReference(targeting, "_definition", definition);
-                SetReference(targeting, "_player", player.transform);
-                SetReference(targeting, "_playerHealth", playerHealth);
-                SetReference(targeting, "_truck", truck);
-                Monster monster = visual.gameObject.AddComponent<Monster>();
-                SetReference(monster, "_definition", definition);
-                MonsterAttack attack = visual.gameObject.AddComponent<MonsterAttack>();
-                SetReference(attack, "_definition", definition);
-                SetReference(attack, "_player", playerHealth);
-                SetReference(attack, "_playerCollider", playerCollider);
-                SetReference(attack, "_truck", truck);
-                SetReference(attack, "_truckHealth", truckHealth);
-                MonsterTruckRoutine truckRoutine = visual.gameObject.AddComponent<MonsterTruckRoutine>();
-                SetReference(truckRoutine, "_definition", definition);
-                SetReference(truckRoutine, "_truck", truck);
-                SetReference(truckRoutine, "_map", arena);
-                SetReference(targeting, "_truckRoutine", truckRoutine);
-                SetReference(attack, "_truckRoutine", truckRoutine);
-                MonsterDrops dropsComponent = visual.gameObject.AddComponent<MonsterDrops>();
+                Monster monster = CreateMonster("Cursed Dumpling " + i, sprite, definition, point.position,
+                    truck, arena, truckHealth, playerHealth, playerCollider);
+                MonsterDrops dropsComponent = monster.gameObject.AddComponent<MonsterDrops>();
                 SetReference(dropsComponent, "_dropTable", drops);
                 SetReference(dropsComponent, "_tuning", backpackTuning);
                 SetReference(dropsComponent, "_sprite", sprite);
@@ -271,7 +244,109 @@ namespace MMF.Editor
                 monsters.GetArrayElementAtIndex(i).objectReferenceValue = monster;
             }
             spawnData.ApplyModifiedPropertiesWithoutUndo();
+            CreateCustomers(sprite, truck, arena, truckHealth, playerHealth, playerCollider);
             AssetDatabase.SaveAssets();
+        }
+
+        private static void CreateCustomers(Sprite sprite, TruckArea truck, MapBounds arena,
+            TruckHealth truckHealth, PlayerHealth playerHealth, Collider2D playerCollider)
+        {
+            string path = Root + "/Data/Monsters/Customer.asset";
+            MonsterDefinition definition = AssetDatabase.LoadAssetAtPath<MonsterDefinition>(path);
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+                SerializedObject data = new SerializedObject(definition);
+                data.FindProperty("_color").colorValue = new Color(1f, 0.6f, 0.15f);
+                data.ApplyModifiedPropertiesWithoutUndo();
+                AssetDatabase.CreateAsset(definition, path);
+            }
+
+            CustomerSpawner spawner = new GameObject("Customer Spawner").AddComponent<CustomerSpawner>();
+            Monster template = CreateMonster("Customer Template", sprite, definition, truck.transform.position,
+                truck, arena, truckHealth, playerHealth, playerCollider);
+            template.gameObject.SetActive(false);
+            template.transform.SetParent(spawner.transform, true);
+            template.gameObject.AddComponent<Customer>();
+
+            Canvas icon = new GameObject("Hunger Icon", typeof(RectTransform)).AddComponent<Canvas>();
+            icon.renderMode = RenderMode.WorldSpace;
+            icon.sortingOrder = 3;
+            RectTransform iconRect = (RectTransform)icon.transform;
+            iconRect.SetParent(template.transform, false);
+            iconRect.localPosition = new Vector3(0f, 0.72f, 0f);
+            iconRect.localScale = Vector3.one * 0.01f;
+            iconRect.sizeDelta = new Vector2(40f, 40f);
+            Text label = UiText("Hunger Label", iconRect, iconRect.sizeDelta, Vector2.zero, 32);
+            label.text = "饿";
+            if (!label.font.HasCharacter('饿'))
+            {
+                label.enabled = false;
+                SpriteRenderer square = CreateSprite("Hunger Square", sprite, Color.white, 3);
+                square.transform.SetParent(template.transform, false);
+                square.transform.localPosition = iconRect.localPosition;
+                square.transform.localScale = Vector3.one * 0.25f;
+            }
+
+            EnsureFolder(Root + "/Data/Tuning");
+            string tuningPath = Root + "/Data/Tuning/CustomerTuning.asset";
+            CustomerTuning tuning = AssetDatabase.LoadAssetAtPath<CustomerTuning>(tuningPath);
+            if (tuning == null)
+            {
+                tuning = ScriptableObject.CreateInstance<CustomerTuning>();
+                AssetDatabase.CreateAsset(tuning, tuningPath);
+            }
+
+            SetReference(spawner, "_tuning", tuning);
+            SetReference(spawner, "_template", template);
+            SerializedObject spawnData = new SerializedObject(spawner);
+            SerializedProperty points = spawnData.FindProperty("_spawnPoints");
+            Vector2[] offsets = { new Vector2(-6f, -7.5f), new Vector2(6f, -7.5f) };
+            points.arraySize = offsets.Length;
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                Transform point = new GameObject("Customer Spawn " + i).transform;
+                point.SetParent(spawner.transform, false);
+                point.position = truck.transform.position + (Vector3)offsets[i];
+                points.GetArrayElementAtIndex(i).objectReferenceValue = point;
+            }
+            spawnData.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static Monster CreateMonster(string name, Sprite sprite, MonsterDefinition definition,
+            Vector3 position, TruckArea truck, MapBounds arena, TruckHealth truckHealth,
+            PlayerHealth playerHealth, Collider2D playerCollider)
+        {
+            SpriteRenderer visual = CreateSprite(name, sprite, definition.Color, 2);
+            visual.transform.position = position;
+            visual.transform.localScale = Vector3.one * definition.Size;
+            Rigidbody2D body = visual.gameObject.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            body.useFullKinematicContacts = true;
+            body.constraints = RigidbodyConstraints2D.FreezeRotation;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            visual.gameObject.AddComponent<BoxCollider2D>();
+            MonsterTargeting targeting = visual.gameObject.AddComponent<MonsterTargeting>();
+            SetReference(targeting, "_definition", definition);
+            SetReference(targeting, "_player", playerHealth.transform);
+            SetReference(targeting, "_playerHealth", playerHealth);
+            SetReference(targeting, "_truck", truck);
+            Monster monster = visual.gameObject.AddComponent<Monster>();
+            SetReference(monster, "_definition", definition);
+            MonsterAttack attack = visual.gameObject.AddComponent<MonsterAttack>();
+            SetReference(attack, "_definition", definition);
+            SetReference(attack, "_player", playerHealth);
+            SetReference(attack, "_playerCollider", playerCollider);
+            SetReference(attack, "_truck", truck);
+            SetReference(attack, "_truckHealth", truckHealth);
+            MonsterTruckRoutine truckRoutine = visual.gameObject.AddComponent<MonsterTruckRoutine>();
+            SetReference(truckRoutine, "_definition", definition);
+            SetReference(truckRoutine, "_truck", truck);
+            SetReference(truckRoutine, "_map", arena);
+            SetReference(targeting, "_truckRoutine", truckRoutine);
+            SetReference(attack, "_truckRoutine", truckRoutine);
+            return monster;
         }
 
         private static DropTable LoadMonsterDrops()

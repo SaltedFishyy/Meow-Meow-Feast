@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-11-18 · T014a · 新版煎锅 1：锅台自己管煎的规则
+
+**做了什么**（Codex 编写，Claude 审查，一次通过）
+- 新的纯 C# 规则 `Cooking/PanCookingModel`：状态 `Empty → CookingFirst → ReadyFirst → CookingSecond → ReadySecond → 煎好（吐出 FryingResult）`；可以翻以后超时 → `Burnt`（焦土留在锅里）；`Holding`（煎好放不进背包 / 旧版留下的东西，只能拿回）。操作 `TryPlace`、`TryFlip`、`TryTakeBack`、`PutBackCooked`、`Tick`，事件 `StateChanged`。
+- 新组件 `Cooking/PanCooking`（挂在锅台上）：每帧推进计时（被举着也照样煎），用 `FryingStation.SetContents` 更新锅里的小方块。和旧版并存：`FryingStation` 加了 `ContentsChanged` 事件，旧版改锅里东西时新版同步成 `Holding`/`Empty`；旧版在煎时新版操作一律失败。
+- `CookingTuning`：每面煎几秒 3、可以翻以后几秒焦 5（🟡，每面开始时读取）。
+- 生成器：锅台加 `PanCooking`、填引用。新测试 `PanCookingModelTests`（12 个）。
+- Claude 小改动：`CookingTuning.cs` 工作区是 CRLF，统一成 LF。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；场景生成 3 次，引用 179 个、空 0 个；105 个测试全部通过（93 + 12）。
+- Play（脚本调用）：放蘑菇 → 2.6 秒时翻失败 → 3 秒后翻成功 → 再 3 秒翻 → 得到煎蘑菇、锅空；再放一个不翻 → 9 秒后变焦土（锅里小方块变焦土色），焦了翻不了，拿回得到焦土。旧版 E 键照常进入煎的画面，这时新版放不进去；旧版退出后新版能拿回蘑菇。Console 没有报错。
+- 这一步还没有画面和鼠标操作（T014b、T014c）。
+
+---
+
 ## 2026-11-18 · T013b · 武器工坊：改了就自动保存
 
 **做了什么**（Codex 编写，Claude 审查，一次通过）

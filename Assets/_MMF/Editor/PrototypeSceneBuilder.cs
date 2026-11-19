@@ -688,6 +688,10 @@ namespace MMF.Editor
             SetReference(panel, "_food", foodImage); SetReference(panel, "_letters", letters);
             SetReference(panel, "_status", status); SetReference(panel, "_panSprite", pan.sprite);
             PlayerInteractor interactor = backpack.GetComponent<PlayerInteractor>();
+            PanCooking panCooking = station.gameObject.AddComponent<PanCooking>();
+            SetReference(panCooking, "_station", station);
+            SetReference(panCooking, "_tuning", LoadCookingTuning());
+            SetReference(panCooking, "_legacyInteractor", interactor);
             SetReference(interactor, "_station", station); SetReference(interactor, "_panel", panel); SetReference(interactor, "_truck", truck);
             var preview = new GameObject("Placement Preview").AddComponent<UnityEngine.Rendering.SortingGroup>();
             preview.sortingOrder = 1;

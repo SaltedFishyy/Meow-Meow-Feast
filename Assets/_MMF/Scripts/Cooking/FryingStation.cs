@@ -18,6 +18,9 @@ namespace MMF.Cooking
                 return _collider;
             }
         }
+        /// <summary>Raised after the station stores and displays its contents.</summary>
+        public event System.Action ContentsChanged;
+
         public ItemDefinition Item { get; private set; }
         public int Count { get; private set; }
         public int ItemsPerBatch => _tuning.ItemsPerBatch;
@@ -42,6 +45,7 @@ namespace MMF.Cooking
             Item = count > 0 ? item : null; Count = count;
             _food.enabled = Item != null;
             if (Item != null) _food.color = Item.Color;
+            ContentsChanged?.Invoke();
         }
         /// <summary>Removes collision while carried.</summary>
         public void SetCarried(bool carried) { Collider.enabled = !carried; }

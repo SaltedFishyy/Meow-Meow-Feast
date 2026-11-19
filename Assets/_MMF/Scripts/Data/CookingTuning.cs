@@ -13,6 +13,9 @@ namespace MMF.Data
         [SerializeField, TuningLabel("每轮几秒（下次开始煎时生效）"), Min(0.01f)] private float _roundSeconds = 10f;
         [SerializeField, TuningLabel("翻面动画几秒"), Min(0.01f)] private float _flipSeconds = 0.4f;
 
+        [SerializeField, TuningLabel("每面煎几秒"), Min(0.01f)] private float _sideSeconds = 3f;
+        [SerializeField, TuningLabel("可以翻以后几秒焦"), Min(0.01f)] private float _burnSeconds = 5f;
+
         /// <summary>InteractionDistance used by components.</summary>
         public float InteractionDistance => _interactionDistance;
         /// <summary>ItemsPerBatch used by components.</summary>
@@ -23,5 +26,9 @@ namespace MMF.Data
         public float RoundSeconds => _roundSeconds;
         /// <summary>FlipSeconds used by components.</summary>
         public float FlipSeconds => _flipSeconds;
+        /// <summary>Cooking duration sampled when a side starts.</summary>
+        public float SideSeconds => _sideSeconds;
+        /// <summary>Burn delay sampled when a side starts.</summary>
+        public float BurnSeconds => _burnSeconds;
     }
 }

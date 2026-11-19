@@ -18,3 +18,4 @@ MonoBehaviour:
   _fryingResult: {fileID: 0}
   _neverExpiresOnGround: 0
   _weapon: {fileID: 0}
+  _feedsCustomer: 1

@@ -267,7 +267,7 @@ namespace MMF.Editor
                 truck, arena, truckHealth, playerHealth, playerCollider);
             template.gameObject.SetActive(false);
             template.transform.SetParent(spawner.transform, true);
-            template.gameObject.AddComponent<Customer>();
+            Customer customer = template.gameObject.AddComponent<Customer>();
 
             Canvas icon = new GameObject("Hunger Icon", typeof(RectTransform)).AddComponent<Canvas>();
             icon.renderMode = RenderMode.WorldSpace;
@@ -297,8 +297,10 @@ namespace MMF.Editor
                 AssetDatabase.CreateAsset(tuning, tuningPath);
             }
 
+            SetReference(customer, "_tuning", tuning);
+            SetReference(customer, "_definition", definition);
             SetReference(spawner, "_tuning", tuning);
-            SetReference(spawner, "_template", template);
+            SetReference(spawner, "_template", customer);
             SerializedObject spawnData = new SerializedObject(spawner);
             SerializedProperty points = spawnData.FindProperty("_spawnPoints");
             Vector2[] offsets = { new Vector2(-6f, -7.5f), new Vector2(6f, -7.5f) };
@@ -378,7 +380,7 @@ namespace MMF.Editor
         private static ItemDefinition LoadMonsterPart(string id, string displayName, Color color)
         {
             Color friedColor = color * new Color(0.65f, 0.65f, 0.65f, 1f);
-            ItemDefinition fried = LoadItem("Fried" + id, "煎" + displayName, friedColor);
+            ItemDefinition fried = LoadItem("Fried" + id, "煎" + displayName, friedColor, feedsCustomer: true);
             ConfigureMonsterPart(fried, "Fried" + id, "煎" + displayName, friedColor, null);
             ItemDefinition raw = LoadItem(id, displayName, color);
             ConfigureMonsterPart(raw, id, displayName, color, fried);
@@ -602,16 +604,23 @@ namespace MMF.Editor
             return weapon;
         }
 
-        private static ItemDefinition LoadItem(string id, string displayName, Color color)
+        private static ItemDefinition LoadItem(string id, string displayName, Color color, bool feedsCustomer = false)
         {
             string path = Root + "/Data/Items/" + id + ".asset";
             ItemDefinition item = AssetDatabase.LoadAssetAtPath<ItemDefinition>(path);
-            if (item != null) return item;
+            if (item != null)
+            {
+                SerializedObject existingData = new SerializedObject(item);
+                existingData.FindProperty("_feedsCustomer").boolValue = feedsCustomer;
+                existingData.ApplyModifiedPropertiesWithoutUndo();
+                return item;
+            }
             item = ScriptableObject.CreateInstance<ItemDefinition>();
             SerializedObject data = new SerializedObject(item);
             data.FindProperty("_id").stringValue = id;
             data.FindProperty("_displayName").stringValue = displayName;
             data.FindProperty("_color").colorValue = color;
+            data.FindProperty("_feedsCustomer").boolValue = feedsCustomer;
             data.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.CreateAsset(item, path);
             return item;
@@ -732,8 +741,8 @@ namespace MMF.Editor
         {
             ItemDefinition meat = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/MonsterMeat.asset");
             ItemDefinition mushroom = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/Mushroom.asset");
-            ItemDefinition friedMeat = LoadItem("FriedMonsterMeat", "煎怪肉", meat.Color * new Color(0.65f, 0.65f, 0.65f, 1f));
-            ItemDefinition friedMushroom = LoadItem("FriedMushroom", "煎蘑菇", mushroom.Color * new Color(0.65f, 0.65f, 0.65f, 1f));
+            ItemDefinition friedMeat = LoadItem("FriedMonsterMeat", "煎怪肉", meat.Color * new Color(0.65f, 0.65f, 0.65f, 1f), feedsCustomer: true);
+            ItemDefinition friedMushroom = LoadItem("FriedMushroom", "煎蘑菇", mushroom.Color * new Color(0.65f, 0.65f, 0.65f, 1f), feedsCustomer: true);
             ItemDefinition burnt = LoadItem("Burnt", "焦土", new Color(0.15f, 0.08f, 0.04f));
             // Only set defaults on raw definitions; keep subsequent Inspector tuning.
             if (meat.FryingResult == null) SetReference(meat, "_fryingResult", friedMeat);

@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace MMF.Combat
 {
-    /// <summary>Creates customers at alternating points and removes each customer on death.</summary>
+    /// <summary>Creates customers at alternating points and removes each customer on death or purification.</summary>
     public sealed class CustomerSpawner : MonoBehaviour
     {
         [SerializeField] private CustomerTuning _tuning = null;
-        [SerializeField] private Monster _template = null;
+        [SerializeField] private Customer _template = null;
         [SerializeField] private Transform[] _spawnPoints = null;
         private int _activeCount;
         private int _nextPoint;
@@ -29,20 +29,22 @@ namespace MMF.Combat
 
             _elapsed = 0f;
             _hasSpawned = true;
-            Monster monster = Instantiate(_template, _spawnPoints[_nextPoint].position,
+            Customer customer = Instantiate(_template, _spawnPoints[_nextPoint].position,
                 _template.transform.rotation, transform);
-            monster.name = "Customer";
-            monster.Died += OnDied;
+            customer.name = "Customer";
+            customer.Purified += RemoveCustomer;
             _nextPoint = (_nextPoint + 1) % _spawnPoints.Length;
             _activeCount++;
-            monster.gameObject.SetActive(true);
+            customer.gameObject.SetActive(true);
+            customer.Monster.Died += RemoveCustomer;
         }
 
-        private void OnDied(Monster monster)
+        private void RemoveCustomer(Monster monster)
         {
             if (_activeCount >= _tuning.MaxCount) _elapsed = 0f;
             _activeCount--;
-            monster.Died -= OnDied;
+            monster.Died -= RemoveCustomer;
+            monster.GetComponent<Customer>().Purified -= RemoveCustomer;
             Destroy(monster.gameObject);
         }
     }

@@ -11,6 +11,11 @@ namespace MMF.Data
         [SerializeField] private ItemDefinition _fryingResult = null;
         [SerializeField] private bool _neverExpiresOnGround = false;
         [SerializeField] private WeaponDefinition _weapon = null;
+        [SerializeField] private bool _feedsCustomer = false;
+
+        /// <summary>Whether this item can be fed to a customer.</summary>
+        public bool FeedsCustomer => _feedsCustomer;
+
         public WeaponDefinition Weapon => _weapon;
         public bool NeverExpiresOnGround => _neverExpiresOnGround;
         public ItemDefinition FryingResult => _fryingResult;

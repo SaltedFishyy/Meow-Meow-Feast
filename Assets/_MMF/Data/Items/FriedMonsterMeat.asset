@@ -16,3 +16,6 @@ MonoBehaviour:
   _displayName: "\u714E\u602A\u8089"
   _color: {r: 0.5525, g: 0.13, b: 0.13, a: 1}
   _fryingResult: {fileID: 0}
+  _neverExpiresOnGround: 0
+  _weapon: {fileID: 0}
+  _feedsCustomer: 1

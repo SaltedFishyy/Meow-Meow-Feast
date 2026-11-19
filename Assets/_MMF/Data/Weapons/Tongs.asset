@@ -41,9 +41,8 @@ MonoBehaviour:
   - rid: 5963565664572014697
   - rid: 5963565664572014698
   - rid: 5963565664572014699
-  - rid: 5963565664572014706
-  - rid: 5963565664572014707
-  - rid: 5963565664572014708
+  - rid: 5963565687738990599
+  - rid: 5963565687738990600
   positions: []
   responses: []
   bindings:
@@ -91,6 +90,14 @@ MonoBehaviour:
     targetId: 3d22b1fd586d4604b7667afde7ab3cd9
     input: targets
     sourcePort: tip
+  - sourceId: d242eabc6ef348388b1c66d5ded25e9d
+    targetId: 7101ccfe0eee48c5bc81ed0f5608c653
+    input: targets
+    sourcePort: 
+  - sourceId: 7acc356576294c92967e5a81fcc74e9d
+    targetId: ea7fc8c4ffcc491a99346e0a5c90c686
+    input: targets
+    sourcePort: 
   boardLayout:
   - moduleId: skill_core
     position: {x: -280, y: -60}
@@ -107,17 +114,15 @@ MonoBehaviour:
   - moduleId: f4d884db46864954a9965fc98a641b05
     position: {x: 120, y: -60}
   - moduleId: 2fad7c7a03164a2197e45d3d1b10beda
-    position: {x: 940, y: 320}
+    position: {x: 940, y: 340}
   - moduleId: df78ecb8bc8e404d9a888aa8f2b1d5b8
     position: {x: 940, y: 220}
   - moduleId: 3d22b1fd586d4604b7667afde7ab3cd9
-    position: {x: 940, y: 420}
-  - moduleId: 727f9a6fe8f04f5ea74727a696ce88c7
-    position: {x: 1360, y: 160}
-  - moduleId: b37e7979b3654e1e8d08d5d002ee4e41
-    position: {x: 1340, y: 400}
-  - moduleId: f8b995289a2a4c58aecc80c2c77cba7e
-    position: {x: 1340, y: 660}
+    position: {x: 940, y: 440}
+  - moduleId: 7101ccfe0eee48c5bc81ed0f5608c653
+    position: {x: 1340, y: 220}
+  - moduleId: ea7fc8c4ffcc491a99346e0a5c90c686
+    position: {x: 940, y: 100}
   references:
     version: 2
     RefIds:
@@ -132,7 +137,7 @@ MonoBehaviour:
         damageMode: 0
         speed: 15
         range: 12
-        size: 0.5
+        size: 0.1
     - rid: 5963565642716282887
       type: {class: PullEffect, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
@@ -207,31 +212,17 @@ MonoBehaviour:
       data:
         moduleId: 3d22b1fd586d4604b7667afde7ab3cd9
         multiplierPercent: 200
-    - rid: 5963565664572014706
-      type: {class: HitAudioFeedback, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+    - rid: 5963565687738990599
+      type: {class: CameraShakeFeedback, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
-        moduleId: 727f9a6fe8f04f5ea74727a696ce88c7
-        triggerMode: 0
+        moduleId: 7101ccfe0eee48c5bc81ed0f5608c653
+        triggerMode: 1
         minInterval: 0
-        clip: {fileID: 0}
-        volume: 1
-        pitch: 1
-    - rid: 5963565664572014707
-      type: {class: HitVfxFeedback, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
+        strength: 0.15
+        duration: 0.2
+        frequency: 25
+    - rid: 5963565687738990600
+      type: {class: StunEffect, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
       data:
-        moduleId: b37e7979b3654e1e8d08d5d002ee4e41
-        triggerMode: 0
-        minInterval: 0
-        prefab: {fileID: 0}
-        scale: 1
-        lifetime: 1
-        offset: {x: 0, y: 0, z: 0}
-    - rid: 5963565664572014708
-      type: {class: RecoilFeedback, ns: AbilityStudio.Model, asm: AbilityStudio.Model}
-      data:
-        moduleId: f8b995289a2a4c58aecc80c2c77cba7e
-        triggerMode: 0
-        minInterval: 0
-        angle: 15
-        leanDuration: 0.06
-        recoveryDuration: 0.18
+        moduleId: ea7fc8c4ffcc491a99346e0a5c90c686
+        duration: 2

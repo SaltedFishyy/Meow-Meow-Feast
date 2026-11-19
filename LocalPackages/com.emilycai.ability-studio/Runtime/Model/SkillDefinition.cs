@@ -10,79 +10,54 @@ namespace AbilityStudio.Model
     public sealed class SkillDefinition : ScriptableObject
     {
         [SerializeField] private int schemaVersion = 1;
+        [SerializeField] private bool coreRemoved;
+        [SerializeField] private bool areaGraph;
+        [SerializeField] private int attackMode;
+        [SerializeField] private SkillInputKey normalKey = SkillInputKey.MouseLeft;
+        [SerializeField] private SkillInputKey specialKey = SkillInputKey.MouseRight;
+        /// <summary>Explicit core-release-area graph with parameters owned by areas.</summary>
+        public bool AreaGraph => areaGraph;
+        public bool DualAttack => areaGraph ? attackMode == 1 : weaponMode;
+        public int AttackMode { get => attackMode; set => attackMode = value; }
+        public SkillInputKey NormalKey { get => normalKey; set => normalKey = value; }
+        public SkillInputKey SpecialKey { get => specialKey; set => specialKey = value; }
+        internal void MarkAreaGraph(bool dual, SkillInputKey primary)
+        { areaGraph = true; attackMode = dual ? 1 : 0; normalKey = primary; kind = SkillKind.NormalAttack; }
+        /// <summary>Maps an authored input to a visible attack branch.</summary>
+        public SkillKind? SlotForKey(SkillInputKey key)
+        {
+            if (key == normalKey) return SkillKind.NormalAttack;
+            if (DualAttack && key == specialKey) return SkillKind.SpecialAttack;
+            return null;
+        }
+        /// <summary>Legacy assets retain their core until it is explicitly removed.</summary>
+        public bool HasCore => !coreRemoved;
+        /// <summary>Restores the core without reconnecting deleted edges or resetting parameters.</summary>
+        public bool AddCore()
+        {
+            if (HasCore) return false;
+            coreRemoved = false; return true;
+        }
         [SerializeField] private string id = "new_skill";
         [SerializeField] private string displayName = "新技能";
         [SerializeField] private Vector3 castOriginOffset;
         [SerializeField] private float cooldown = 1;
-        [SerializeField] private float baseDamage = 10;
+        [SerializeField] private float baseDamage = 2;
         [SerializeField] private float distance = 8;
         [SerializeField] private bool integratedAttacks;
         /// <summary>Complete attack nodes connected directly to the two input slots.</summary>
         public bool IntegratedAttacks { get => integratedAttacks; set { integratedAttacks=value; if(value) weaponMode=true; } }
         /// <summary>One complete attack selected by a root output.</summary>
         public AttackModule AttackFor(SkillKind slot) => Attacks.FirstOrDefault(a => BindingSource(a.ModuleId,BindingRules.Trigger)==CoreLayoutId && BindingOutput(a.ModuleId,BindingRules.Trigger)==(slot==SkillKind.NormalAttack?BindingRules.Normal:BindingRules.Special));
-        /// <summary>Whether old wiring can be collapsed without dropping any active areas or changing routing.</summary>
-        public bool CanIntegrate => !integratedAttacks && (!weaponMode ? Attacks.Count()==1 : releases.All(r => Attacks.Count(a=>BindingSource(a.ModuleId,BindingRules.Cast)==r.ModuleId)<=1)) &&
-            Attacks.All(a=>BindingSource(a.ModuleId,BindingRules.Charge)==null || BindingSource(a.ModuleId,BindingRules.Charge)==(weaponMode?ReleaseForAttack(a)?.ModuleId:ActiveRelease?.ModuleId)) &&
-            bindings.Where(b=>FindModule(b.SourceId) is ReleaseModule && b.SourcePort==BindingRules.Endpoint).All(b=>Attacks.Any(a=>BindingSource(a.ModuleId,BindingRules.Cast)==b.SourceId));
-        /// <summary>Copies release settings into each area, preserving effects, input slots, endpoints and fixed-size charge behavior.</summary>
-        public bool IntegrateAttacks()
-        {
-            if (!CanIntegrate) return false;
-            EnableWeaponMode();
-            var mapped=new Dictionary<string,AttackModule>();
-            var slots=new Dictionary<string,string>();
-            foreach(var area in Attacks)
-            {
-                var release=ReleaseForAttack(area);
-                if(release==null) continue;
-                mapped[release.ModuleId]=area;
-                area.Settings.BaseDamage=release.BaseDamage; area.Settings.Cooldown=release.Cooldown; area.Settings.Distance=release.Distance;
-                area.ReleaseMode=release is ChargeRelease?1:0;
-                if(release is ChargeRelease charge)
-                {
-                    area.Settings.Duration=charge.Duration;
-                    if(BindingSource(area.ModuleId,BindingRules.Charge)==null)
-                    {
-                        if(area is LineThrustAttack rect) rect.MinLength=rect.Length;
-                        if(area is CircleAttack circle) circle.MinRadius=circle.Radius;
-                        if(area is ConeAttack cone) cone.MinRange=cone.Range;
-                    }
-                }
-                if(BindingSource(release.ModuleId,BindingRules.Trigger)==CoreLayoutId) slots[area.ModuleId]=BindingOutput(release.ModuleId,BindingRules.Trigger);
-            }
-            for(int i=0;i<bindings.Count;i++)
-                if(bindings[i].SourcePort==BindingRules.Endpoint && mapped.TryGetValue(bindings[i].SourceId,out var area))
-                    bindings[i]=new ModuleBinding(area.ModuleId,bindings[i].TargetId,bindings[i].Input,BindingRules.Endpoint);
-            bindings.RemoveAll(b=>b.Input==BindingRules.Cast || b.Input==BindingRules.Charge || b.Input==BindingRules.Trigger);
-            integratedAttacks=true;
-            foreach(var pair in slots) SetBinding(CoreLayoutId,pair.Key,BindingRules.Trigger,pair.Value);
-            return true;
-        }
         [SerializeField] private bool weaponMode;
         /// <summary>Explicit dual-attack routing; false preserves legacy skill behavior.</summary>
         public bool WeaponMode { get => weaponMode; set => weaponMode = value; }
         /// <summary>Release connected to a weapon input, or legacy release for single skills.</summary>
-        public ReleaseModule ReleaseFor(SkillKind slot) => integratedAttacks ? AttackFor(slot)?.ReleaseSettings : !weaponMode ? ActiveRelease : releases.FirstOrDefault(r => r != null && BindingSource(r.ModuleId, BindingRules.Trigger) == CoreLayoutId && BindingOutput(r.ModuleId, BindingRules.Trigger) == (slot == SkillKind.NormalAttack ? BindingRules.Normal : BindingRules.Special));
+        public ReleaseModule ReleaseFor(SkillKind slot) => areaGraph && !DualAttack && slot == SkillKind.SpecialAttack ? null : integratedAttacks ? AttackFor(slot)?.ReleaseSettings : !weaponMode ? ActiveRelease : releases.FirstOrDefault(r => r != null && BindingSource(r.ModuleId, BindingRules.Trigger) == CoreLayoutId && BindingOutput(r.ModuleId, BindingRules.Trigger) == (slot == SkillKind.NormalAttack ? BindingRules.Normal : BindingRules.Special));
         /// <summary>Owning branch of an explicitly wired attack.</summary>
         public ReleaseModule ReleaseForAttack(AttackModule area) => integratedAttacks ? area.ReleaseSettings : FindModule(BindingSource(area.ModuleId, BindingRules.Cast)) as ReleaseModule;
         /// <summary>Areas that participate in the requested branch.</summary>
         public IEnumerable<AttackModule> AttacksFor(SkillKind slot) => integratedAttacks ? Attacks.Where(a => a == AttackFor(slot)) : !weaponMode ? Attacks : Attacks.Where(a => ReleaseFor(slot) != null && BindingSource(a.ModuleId, BindingRules.Cast) == ReleaseFor(slot).ModuleId);
-        /// <summary>Promotes a legacy skill, preserving its input slot, dimensions, effects and parameters.</summary>
-        public void EnableWeaponMode()
-        {
-            if (weaponMode) return;
-            var release = ActiveRelease;
-            if (release == null) { release = new InstantRelease(); AddRelease(release); }
-            release.BaseDamage = baseDamage; release.Cooldown = cooldown; release.Distance = distance;
-            bindings.RemoveAll(b => b.TargetId == CoreLayoutId && b.Input == BindingRules.Release);
-            weaponMode = true;
-            SetBinding(CoreLayoutId, release.ModuleId, BindingRules.Trigger, kind == SkillKind.NormalAttack ? BindingRules.Normal : BindingRules.Special);
-            foreach (var area in Attacks) SetBinding(release.ModuleId, area.ModuleId, BindingRules.Cast);
-            for (int i=0;i<bindings.Count;i++)
-                if (bindings[i].SourceId == CoreLayoutId && (bindings[i].Input == BindingRules.Position || bindings[i].Input == BindingRules.Destination))
-                    bindings[i] = new ModuleBinding(release.ModuleId,bindings[i].TargetId,bindings[i].Input,BindingRules.Endpoint);
-        }
         [SerializeField] private SkillKind kind;
         /// <summary>Normal or special input slot; old assets default to normal.</summary>
         public SkillKind Kind { get => kind; set => kind = value; }
@@ -98,7 +73,7 @@ namespace AbilityStudio.Model
         /// <summary>Maximum ground-plane cast distance from cast origin.</summary>
         public float Distance { get => distance; set => distance = value; }
         /// <summary>Whether a legacy endpoint is available to merge into the core.</summary>
-        public bool NeedsEndpointMigration => !coreEndpointMigrated && positions.OfType<SkillEndpointPosition>().Any();
+        public bool NeedsEndpointMigration => HasCore && !coreEndpointMigrated && positions.OfType<SkillEndpointPosition>().Any();
         /// <summary>Moves the first legacy endpoint into the core, preserving differently configured legacy sources.</summary>
         public bool MigrateEndpointToCore()
         {
@@ -207,10 +182,18 @@ namespace AbilityStudio.Model
             if (removed) bindings.RemoveAll(b => b.SourceId == moduleId || b.TargetId == moduleId);
             return removed;
         }
-        /// <summary>Removes an attack or effect and its presentation entry; the core is permanent.</summary>
+        /// <summary>Removes a node, its incident bindings and its presentation entry.</summary>
         public bool RemoveModule(string moduleId)
         {
-            if (string.IsNullOrEmpty(moduleId) || moduleId == CoreLayoutId) return false;
+            if (string.IsNullOrEmpty(moduleId)) return false;
+            if (moduleId == CoreLayoutId)
+            {
+                if (!HasCore) return false;
+                coreRemoved = true;
+                bindings.RemoveAll(b => b.SourceId == CoreLayoutId || b.TargetId == CoreLayoutId);
+                boardLayout.RemoveAll(item => item.ModuleId == CoreLayoutId);
+                return true;
+            }
             bool removed;
             if (attack != null && attack.ModuleId == moduleId) { attack = null; removed = true; }
             else removed = additionalAttacks.RemoveAll(x => x != null && x.ModuleId == moduleId) > 0 || RemoveEffect(moduleId) || positions.RemoveAll(x => x != null && x.ModuleId == moduleId) > 0 || responses.RemoveAll(x => x != null && x.ModuleId == moduleId) > 0 || releases.RemoveAll(x => x != null && x.ModuleId == moduleId) > 0;

@@ -18,7 +18,6 @@ namespace AbilityStudio.Editor
         /// <summary>Independent gameplay scene path.</summary>
         public const string GameplayPath = "Assets/_Sandbox/Gameplay2D/AbilityGameplay2D.unity";
         /// <summary>Creates missing prototype assets, callable from batch mode.</summary>
-        [MenuItem("Tools/技能工坊/创建缺失的测试资源")]
         public static void CreateMissingAssets()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;

@@ -11,23 +11,32 @@ namespace AbilityStudio.Model
         {
             var errors = new List<string>();
             if (skill == null) { errors.Add("请选择技能资产。"); return errors; }
+            if (!skill.HasCore) errors.Add("缺少技能基础，请从模块库重新添加并连接后再释放。");
             if (!System.Enum.IsDefined(typeof(SkillKind), skill.Kind)) errors.Add("请选择有效的技能类型。");
             if (skill.SchemaVersion != 1) errors.Add("不支持此技能数据版本。");
             if (string.IsNullOrEmpty(skill.Id) || !Regex.IsMatch(skill.Id, "^[a-z][a-z0-9_]*$")) errors.Add("标识只能使用小写英文字母、数字和下划线，且须以字母开头。");
-            if (!NonNegative(skill.Cooldown)) errors.Add("冷却时间必须是有限的非负数。");
-            if (!NonNegative(skill.BaseDamage)) errors.Add("伤害必须是有限的非负数。");
-            if (!Positive(skill.Distance)) errors.Add("最大施法距离必须是有限正数。");
+            if (!skill.AreaGraph && !NonNegative(skill.Cooldown)) errors.Add("冷却时间必须是有限的非负数。");
+            if (!skill.AreaGraph && !NonNegative(skill.BaseDamage)) errors.Add("伤害必须是有限的非负数。");
+            if (!skill.AreaGraph && !Positive(skill.Distance)) errors.Add("最大施法距离必须是有限正数。");
+            if (skill.AreaGraph && (skill.AttackMode < 0 || skill.AttackMode > 1)) errors.Add("请选择单攻击或双攻击。");
+            if (!System.Enum.IsDefined(typeof(SkillInputKey), skill.NormalKey) || !System.Enum.IsDefined(typeof(SkillInputKey), skill.SpecialKey)) errors.Add("请选择有效键位。");
+            if (skill.DualAttack && skill.NormalKey == skill.SpecialKey) errors.Add("普通攻击和特殊攻击不能使用相同键位。");
             var offset = skill.CastOriginOffset;
-            if (!Finite(offset.x) || !Finite(offset.y) || !Finite(offset.z)) errors.Add("施法偏移必须是有限数值。");
+            if (!skill.AreaGraph && (!Finite(offset.x) || !Finite(offset.y) || !Finite(offset.z))) errors.Add("施法偏移必须是有限数值。");
             if (!skill.Attacks.Any()) errors.Add("请从模块库添加技能范围后再施法。");
             foreach (var release in skill.IntegratedAttacks ? System.Array.Empty<ReleaseModule>() : skill.Releases)
             {
-                if (skill.WeaponMode && release != null && (!NonNegative(release.BaseDamage) || !NonNegative(release.Cooldown) || !Positive(release.Distance))) errors.Add("释放节点的伤害、冷却须为非负数，施法距离须为正数。");
+                if (!skill.AreaGraph && skill.WeaponMode && release != null && (!NonNegative(release.BaseDamage) || !NonNegative(release.Cooldown) || !Positive(release.Distance))) errors.Add("释放节点的伤害、冷却须为非负数，施法距离须为正数。");
                 if (release is ChargeRelease charge) { if (!Positive(charge.Duration)) errors.Add("最长蓄力时间必须是有限正数。"); }
                 else if (!(release is InstantRelease)) errors.Add("不支持的释放方式。");
             }
             foreach (var attack in skill.Attacks)
             {
+                if (skill.AreaGraph && attack != null)
+                {
+                    var local = attack.CastOriginOffset;
+                    if (!NonNegative(attack.Settings.BaseDamage) || !NonNegative(attack.Settings.Cooldown) || !Positive(attack.Settings.Distance) || !Finite(local.x) || !Finite(local.y) || !Finite(local.z)) errors.Add("范围节点的伤害、冷却须为非负数，最大施法距离须为正数，偏移须为有限数值。");
+                }
                 if (skill.IntegratedAttacks && attack != null)
                 {
                     if (attack.ReleaseMode < 0 || attack.ReleaseMode > 1) errors.Add("请选择瞬发或蓄力。");
@@ -36,7 +45,7 @@ namespace AbilityStudio.Model
                 if (attack != null && !System.Enum.IsDefined(typeof(DamageMode), attack.DamageMode)) errors.Add("请选择有效的伤害结算方式。");
                 if (attack is ProjectileAttack p)
                 {
-                    if (!Positive(p.Speed) || !Positive(p.Range) || !Positive(p.Size)) errors.Add("投射物速度、距离和半径必须是有限正数。");
+                    if (!Positive(p.Speed) || !Positive(p.Range) || !Positive(p.Size)) errors.Add("投射物速度、距离和尺寸（半径）必须是有限正数。");
                 }
                 else if (attack is CircleAttack circle)
                 {
@@ -91,7 +100,8 @@ namespace AbilityStudio.Model
                     { if (!NonNegative(audio.Volume) || audio.Volume > 1 || !Positive(audio.Pitch) || audio.Pitch < .1f || audio.Pitch > 3) errors.Add("音量须为 0–1，音调须为 0.1–3 的有限数值。"); }
                     else errors.Add("不支持的命中反馈。");
                 }
-                else if (effect is DamageEffect direct) { if (!NonNegative(direct.MultiplierPercent) || !float.IsFinite(skill.BaseDamage * (direct.MultiplierPercent / 100f))) errors.Add("伤害倍率须为有限非负数，结算伤害不得溢出。"); }
+                else if (effect is HealEffect heal) { if (heal.Mode < 0 || heal.Mode > 2 || !NonNegative(heal.Amount)) errors.Add("治疗方式须有效，治疗量须为有限非负数。"); }
+                else if (effect is DamageEffect direct) { if (!NonNegative(direct.MultiplierPercent) || (skill.AreaGraph ? skill.Attacks.Any(a => !float.IsFinite(a.Settings.BaseDamage * (direct.MultiplierPercent / 100f))) : !float.IsFinite(skill.BaseDamage * (direct.MultiplierPercent / 100f)))) errors.Add("伤害倍率须为有限非负数，结算伤害不得溢出。"); }
                 else if (effect is PullEffect pull)
                 {
                     if (!NonNegative(pull.StopDistance) || !Positive(pull.Duration)) errors.Add("拉拽目的地间距须为非负数，持续时间须为正数。");

@@ -12,6 +12,14 @@ namespace MMF.Combat
     {
         [SerializeField] private TruckArea _truck = null;
         private PlayerBackpack _backpack;
+        private WorkshopWeaponController _workshop;
+        internal TruckArea Truck => _truck;
+        public bool HasWorkshopWeapon => _workshop != null && _workshop.HasWeapon;
+        public bool WorkshopOwnsRightMouse => _workshop != null && _workshop.OwnsRightMouse;
+        public AbilityStudio.Model.SkillInputKey WorkshopPrimaryKey => _workshop.PrimaryKey;
+        public AbilityStudio.Model.SkillInputKey? WorkshopSecondaryKey => _workshop.SecondaryKey;
+        public bool PressWorkshopInput(AbilityStudio.Model.SkillInputKey key, Vector2 aim) => _workshop != null && _workshop.PressInput(key, aim);
+        public void ReleaseWorkshopInput(AbilityStudio.Model.SkillInputKey key, Vector2 aim) => _workshop?.ReleaseInput(key, aim);
         private float _nextAttackTime;
         private readonly List<Collider2D> _colliders = new List<Collider2D>();
         private readonly HashSet<Monster> _hitMonsters = new HashSet<Monster>();
@@ -23,12 +31,18 @@ namespace MMF.Combat
         private void Awake()
         {
             _backpack = GetComponent<PlayerBackpack>();
+            _workshop = GetComponent<WorkshopWeaponController>();
+            if (_workshop == null) _workshop = gameObject.AddComponent<WorkshopWeaponController>();
             _filter = new ContactFilter2D { useTriggers = false };
         }
+
+        /// <summary>Cancels pending workshop input without firing.</summary>
+        public void CancelWorkshop() => _workshop?.Cancel();
 
         /// <summary>Returns true when a weapon swings, including harmless swings inside the truck.</summary>
         public bool TryAttack(Vector2 aimWorldPosition)
         {
+            if (_workshop != null && _workshop.HasWeapon) return _workshop.Press(aimWorldPosition);
             ItemDefinition item = _backpack.ItemAt(_backpack.Model.SelectedSlot);
             if (item == null || item.Weapon == null || Time.time < _nextAttackTime) return false;
             WeaponDefinition weapon = item.Weapon;

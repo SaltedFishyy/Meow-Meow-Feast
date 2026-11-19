@@ -121,7 +121,7 @@ namespace AbilityStudio.Editor
             {
                 bool active = i < world.Executor.Projectiles.Count; _shots[i].SetActive(active); if (!active) continue;
                 var shot = world.Executor.Projectiles[i]; _shots[i].transform.position = shot.Position + Vector3.back * .2f;
-                _shots[i].transform.localScale = Vector3.one * Mathf.Max(.15f, shot.Radius * 2);
+                _shots[i].transform.localScale = Vector3.one * shot.Radius * 2;
             }
             int count = 0;
             Line(count++, new[] { world.Position + Vector3.back * .1f, world.Position + world.Rotation * Vector3.right * 1.5f + Vector3.back * .1f }, _cyan);
@@ -131,6 +131,8 @@ namespace AbilityStudio.Editor
                 foreach (var attack in world.Skill.AttacksFor(world.PreviewSlot))
                 {
                     var p = SkillPositions.AttackPosition(world.Skill, attack, world, world.Aim);
+                    direction = SkillPositions.AreaDirection(world.Skill, attack, world, world.Aim);
+                    if (world.Skill.AreaGraph) Line(count++, Circle(SkillPositions.AreaEndpoint(world.Skill, attack, world, world.Aim), .18f), _cyan);
                     if (attack is CircleAttack c) Line(count++, Circle(p, SkillChargeGeometry.Radius(world.Skill, c, world.ChargeRatio)), _blue);
                     else if (attack is LineThrustAttack r) Line(count++, Rectangle(p, direction, SkillChargeGeometry.Length(world.Skill, r, world.ChargeRatio), r.Width), _blue);
                     else if (attack is ConeAttack cone) Line(count++, Cone(p, direction, SkillChargeGeometry.Range(world.Skill, cone, world.ChargeRatio), cone.AngleDegrees), _blue);
@@ -140,12 +142,13 @@ namespace AbilityStudio.Editor
                 var endpoint = world.Skill.WeaponMode && release != null
                     ? SkillPositions.BranchEndpoint(world.Skill, release, world, world.Aim)
                     : SkillPositions.Endpoint(world.Skill, world, world.Aim);
-                Line(count++, Circle(endpoint, .18f), _cyan);
+                if (!world.Skill.AreaGraph) Line(count++, Circle(endpoint, .18f), _cyan);
                 foreach (var rectangle in world.Skill.AttacksFor(world.PreviewSlot).OfType<LineThrustAttack>())
                 {
                     float length = SkillChargeGeometry.Length(world.Skill, rectangle, world.ChargeRatio);
                     float tip = Mathf.Min(length, rectangle.TipLength);
                     var origin = SkillPositions.AttackPosition(world.Skill, rectangle, world, world.Aim);
+                    direction = SkillPositions.AreaDirection(world.Skill, rectangle, world, world.Aim);
                     if (tip > 0) Line(count++, Rectangle(SkillChargeGeometry.TipOrigin(origin, direction, length, tip), direction, tip, rectangle.Width), _yellow);
                 }
             }

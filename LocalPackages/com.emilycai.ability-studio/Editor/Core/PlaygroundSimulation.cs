@@ -9,8 +9,18 @@ using UnityEngine.SceneManagement;
 namespace AbilityStudio.Editor
 {
     /// <summary>Isolated, manually ticked editor world using the same combat runtime as gameplay.</summary>
-    public sealed class PlaygroundSimulation : IDisposable, ISkillClock, ISkillCaster
+    public sealed class PlaygroundSimulation : IDisposable, ISkillClock, ISkillCaster, ISkillTarget, IHealable
     {
+        /// <summary>Health adapter for the preview caster.</summary>
+        public CombatTarget Health { get; }
+        /// <inheritdoc/>
+        public float Radius => Health.Radius;
+        /// <inheritdoc/>
+        public bool IsAlive => Health.IsAlive;
+        /// <inheritdoc/>
+        public float MaxHp => Health.MaxHp;
+        /// <inheritdoc/>
+        public void ApplyHealing(float amount, ISkillCaster source) => Health.ApplyHealing(amount, source);
         private readonly ListTargetProvider _provider = new ListTargetProvider();
         private readonly List<CombatTarget> _targets = new List<CombatTarget>();
         private readonly List<Vector3> _spawns = new List<Vector3>();
@@ -53,6 +63,7 @@ namespace AbilityStudio.Editor
             _ownsScene = !scene.IsValid(); Scene = _ownsScene ? EditorSceneManager.NewPreviewScene() : scene;
             Root = new GameObject("Ability Studio isolated playground") { hideFlags = HideFlags.HideAndDontSave };
             SceneManager.MoveGameObjectToScene(Root, Scene);
+            Health = Root.AddComponent<CombatTarget>(); Health.SetTeam(Team); Health.ResetTarget();
             Executor = new SkillExecutor(this, _provider);
             _release = new SkillReleaseSession(Executor);
             AddDummy(new Vector3(-3, 3, 0)); AddDummy(new Vector3(0, 5, 0)); AddDummy(new Vector3(3, 3, 0));
@@ -98,6 +109,7 @@ namespace AbilityStudio.Editor
         public void Tick(float delta, Vector2 movement = default)
         {
             if (_disposed || !float.IsFinite(delta) || delta <= 0) return;
+            if (Skill != null && Skill.AreaGraph && !Skill.DualAttack) PreviewSlot = SkillKind.NormalAttack;
             Time += delta; _release.Tick(delta);
             var move = Vector2.ClampMagnitude(movement, 1) * (6 * delta);
             Position = new Vector3(Mathf.Clamp(Position.x + move.x, -13, 13), Mathf.Clamp(Position.y + move.y, -10, 10), 0);
@@ -116,6 +128,7 @@ namespace AbilityStudio.Editor
         /// <summary>Clears cooldowns, projectiles and statuses, restoring all spawn positions.</summary>
         public void Reset()
         {
+            Health.ResetTarget();
             Cancel(); Executor.Reset(); Time = 0; Position = new Vector3(0, -5, 0); MoveDummies = false;
             for (int i = 0; i < _targets.Count; i++) { _targets[i].ResetTarget(); _targets[i].transform.position = _spawns[i]; }
             SetAim(new Vector3(0, 3, 0));

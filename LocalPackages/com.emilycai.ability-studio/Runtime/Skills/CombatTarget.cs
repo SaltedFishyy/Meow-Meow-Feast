@@ -3,7 +3,7 @@ using UnityEngine;
 namespace AbilityStudio.Runtime
 {
     /// <summary>Default health and smooth displacement adapter, independent of any skill.</summary>
-    public sealed class CombatTarget : MonoBehaviour, ISkillTarget, IDamageable, ITrackedDisplaceable, IStatusReceiver, IBleedReceiver, ISlowReceiver
+    public sealed class CombatTarget : MonoBehaviour, ISkillTarget, IDamageable, IHealable, ITrackedDisplaceable, IStatusReceiver, IBleedReceiver, ISlowReceiver
     {
         [SerializeField] private int _team = 1;
         [SerializeField] private float _maxHp = 10;
@@ -98,6 +98,14 @@ namespace AbilityStudio.Runtime
         /// <inheritdoc/>
         public void ApplyDamage(float amount, ISkillCaster source)
         { float actual = Mathf.Min(CurrentHp, Mathf.Max(0, amount)); CurrentHp -= actual; Damaged?.Invoke(actual); }
+        /// <summary>Sets the friendly-fire group for runtime-created actors.</summary>
+        public void SetTeam(int team) => _team = team;
+        /// <inheritdoc/>
+        public void ApplyHealing(float amount, ISkillCaster source)
+        {
+            if (!IsAlive || !float.IsFinite(amount) || amount <= 0) return;
+            CurrentHp += Mathf.Min(amount, Mathf.Max(0, MaxHp - CurrentHp));
+        }
         /// <inheritdoc/>
         public void Displace(Vector3 worldDelta, float duration)
         { _displacementCompleted = null; _moveStart = Position; _moveEnd = Position + new Vector3(worldDelta.x, worldDelta.y, 0); _moveTime = 0; _moveDuration = Mathf.Max(0.001f, duration); }

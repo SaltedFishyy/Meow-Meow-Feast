@@ -18,6 +18,9 @@ namespace MMF.Combat
         private ContactFilter2D _filter;
         private readonly RaycastHit2D[] _hits = new RaycastHit2D[32];
         private int _health;
+        private MonsterSkillTarget _skillTarget;
+        internal int Health => _health;
+        internal int MaxHealth => _definition.Health;
         private float _flashRemaining;
         private Vector2 _knockback;
         private Vector2 _shove;
@@ -46,6 +49,8 @@ namespace MMF.Combat
             _collider = GetComponent<BoxCollider2D>();
             _renderer = GetComponent<SpriteRenderer>();
             _filter = new ContactFilter2D { useTriggers = false };
+            _skillTarget = GetComponent<MonsterSkillTarget>();
+            if (_skillTarget == null) _skillTarget = gameObject.AddComponent<MonsterSkillTarget>();
         }
 
         private void OnEnable()
@@ -79,6 +84,7 @@ namespace MMF.Combat
         {
             Vector2 target = _targeting.TargetPosition(_body.position);
             bool hasExternalMotion = _shoved || _knockback.sqrMagnitude > 0f;
+            if (_skillTarget != null && _skillTarget.IsStunned && !hasExternalMotion) return;
             Vector2 attackDisplacement = Vector2.zero;
             bool attackControlsMovement = _attack != null && _attack.isActiveAndEnabled &&
                 _attack.Step(_body.position, hasExternalMotion, out attackDisplacement);
@@ -96,6 +102,7 @@ namespace MMF.Combat
             else
                 displacement = Vector2.ClampMagnitude(target - _body.position,
                     _definition.Speed * Time.fixedDeltaTime);
+            if (!hasExternalMotion && _skillTarget != null) displacement *= _skillTarget.MovementSpeedMultiplier;
             _shoved = false;
             _shove = Vector2.zero;
             float distance = displacement.magnitude;

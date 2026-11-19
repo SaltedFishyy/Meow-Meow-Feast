@@ -9,28 +9,18 @@ namespace AbilityStudio.Editor
     /// <summary>Undo-aware asset authoring operations.</summary>
     public static class SkillAssetCommands
     {
-        /// <summary>Folds releases into complete attacks in one undoable edit.</summary>
-        public static bool IntegrateAttacks(SkillDefinition skill)
+        /// <summary>Upgrades graph ownership and wiring as one reversible edit.</summary>
+        public static bool UpgradeGraph(SkillDefinition skill)
         {
-            if (skill == null || !skill.CanIntegrate) return false;
-            Undo.RegisterCompleteObjectUndo(skill,"合并释放方式到攻击节点");
-            if (!skill.IntegrateAttacks()) return false;
-            EditorUtility.SetDirty(skill); return true;
-        }
-        /// <summary>Converts a legacy composition into one weapon branch with a single Undo record.</summary>
-        public static void EnableWeaponMode(SkillDefinition skill)
-        { if (skill == null || skill.WeaponMode) return; Undo.RegisterCompleteObjectUndo(skill,"转换为武器双攻击"); skill.EnableWeaponMode(); EditorUtility.SetDirty(skill); }
-        /// <summary>Merges an old endpoint into Core with Undo, preserving all affected links.</summary>
-        public static bool MigrateEndpoint(SkillDefinition skill)
-        {
-            if (skill == null || !skill.NeedsEndpointMigration) return false;
-            Undo.RegisterCompleteObjectUndo(skill, "合并终点到技能基础");
-            skill.MigrateEndpointToCore(); EditorUtility.SetDirty(skill); return true;
+            if (skill == null || skill.AreaGraph) return false;
+            Undo.RegisterCompleteObjectUndo(skill, "升级释放连线与范围参数");
+            SkillGraphMigration.Upgrade(skill); EditorUtility.SetDirty(skill); return true;
         }
         /// <summary>Adds a fresh independent module instance and optional position in one Undo step.</summary>
         public static bool AddModule(SkillDefinition skill, Type type, Vector2? position = null)
         {
             if (!ModuleCatalog.CanAdd(skill, type)) return false;
+            UpgradeGraph(skill);
             var module = (SkillModule)Activator.CreateInstance(type);
             Undo.RegisterCompleteObjectUndo(skill, "添加 " + ModuleCatalog.Metadata(type).DisplayName);
             if (module is AttackModule attack) skill.AddAttack(attack);
@@ -42,12 +32,20 @@ namespace AbilityStudio.Editor
             EditorUtility.SetDirty(skill);
             return true;
         }
+        /// <summary>Restores the deleted core in one undoable edit.</summary>
+        public static bool AddCore(SkillDefinition skill)
+        {
+            if (skill == null || skill.HasCore) return false;
+            Undo.RegisterCompleteObjectUndo(skill, "添加技能基础");
+            skill.AddCore(); EditorUtility.SetDirty(skill); return true;
+        }
         /// <summary>Removes modules and their saved positions together as one undoable edit.</summary>
         public static bool RemoveModules(SkillDefinition skill, IEnumerable<string> moduleIds)
         {
             if (skill == null || moduleIds == null) return false;
             var requested = new HashSet<string>(moduleIds);
             var existing = skill.Modules.Where(e => e != null).Select(e => e.ModuleId).ToList();
+            if (skill.HasCore) existing.Add(SkillDefinition.CoreLayoutId);
             // Modules includes attacks, effects and position sources.
             var removed = existing.Where(requested.Contains).ToArray();
             if (removed.Length == 0) return false;

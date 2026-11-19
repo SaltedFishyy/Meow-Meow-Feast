@@ -1,4 +1,5 @@
 using MMF.Data;
+using MMF.Truck;
 using UnityEngine;
 namespace MMF.Cooking
 {
@@ -9,6 +10,7 @@ namespace MMF.Cooking
         [SerializeField] private ItemDefinition _burntItem = null;
         [SerializeField] private SpriteRenderer _food = null;
         [SerializeField] private CookingTuning _tuning = null;
+        [SerializeField] private TruckArea _truck = null;
         private BoxCollider2D _collider;
         private ItemDefinition _displayedItem;
         private BoxCollider2D Collider
@@ -22,6 +24,7 @@ namespace MMF.Cooking
         public ItemDefinition BurntItem => _burntItem;
         public Vector2 Size => Vector2.Scale(Collider.size, transform.lossyScale);
         private void Awake() { _collider = GetComponent<BoxCollider2D>(); }
+        private void Start() { transform.position = _truck.TopLeftCell(Vector2.one); }
         /// <summary>Checks the configured player-to-station distance.</summary>
         public bool InRange(Vector2 player)
         {

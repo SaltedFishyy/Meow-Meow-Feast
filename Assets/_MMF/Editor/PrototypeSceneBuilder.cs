@@ -167,7 +167,9 @@ namespace MMF.Editor
         {
             TruckArea truck = new GameObject("Truck").AddComponent<TruckArea>();
             TruckHealth health = truck.gameObject.AddComponent<TruckHealth>();
-            SetReference(health, "_tuning", LoadTruckTuning());
+            TruckTuning tuning = LoadTruckTuning();
+            SetReference(health, "_tuning", tuning);
+            SetReference(truck, "_tuning", tuning);
             SpriteRenderer floor = CreateSprite("Truck Floor", sprite, new Color(0.7f, 0.67f, 0.52f), 0);
             floor.transform.SetParent(truck.transform, false);
             SetReference(truck, "_floor", floor.transform);
@@ -182,7 +184,6 @@ namespace MMF.Editor
                 walls.GetArrayElementAtIndex(i).objectReferenceValue = wall.transform;
             }
             data.ApplyModifiedPropertiesWithoutUndo();
-            truck.RefreshLayout();
             return truck;
         }
         private static void CreateMonsters(Sprite sprite, TruckArea truck, PlayerBackpack player, MapBounds arena)
@@ -752,6 +753,7 @@ namespace MMF.Editor
             stationBody.gameObject.AddComponent<BoxCollider2D>().size = Vector2.one;
             FryingStation station = stationBody.gameObject.AddComponent<FryingStation>();
             SetReference(station, "_tuning", LoadCookingTuning());
+            SetReference(station, "_truck", truck);
             SpriteRenderer food = CreateSprite("Pan Contents", sprite, Color.white, 4);
             food.transform.SetParent(station.transform, false); food.transform.localScale = Vector3.one * 0.4f;
             food.enabled = false; SetReference(station, "_food", food); SetReference(station, "_burntItem", burnt);

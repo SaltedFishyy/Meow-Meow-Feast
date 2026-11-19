@@ -1,3 +1,4 @@
+using MMF.Data;
 using UnityEngine;
 
 namespace MMF.Truck
@@ -5,12 +6,13 @@ namespace MMF.Truck
     /// <summary>Placeholder truck geometry and interior position checks.</summary>
     public sealed class TruckArea : MonoBehaviour
     {
-        [SerializeField] private Vector2 _size = new Vector2(12f, 7f);
-        [SerializeField, Min(0.1f)] private float _doorWidth = 2f;
+        [SerializeField] private TruckTuning _tuning = null;
         [SerializeField, Min(0.01f)] private float _wallThickness = 0.5f;
         [SerializeField] private Transform _floor = null;
         [SerializeField] private Transform[] _walls = new Transform[6];
         [SerializeField] private Transform[] _doorBlockers = new Transform[2];
+        private Vector2 _size;
+
         /// <summary>Tests the position against the wall inner faces.</summary>
         public bool Contains(Vector2 position)
         {
@@ -52,16 +54,22 @@ namespace MMF.Truck
             return rect.min + new Vector2(cellSize.x * 0.5f,
                 (Mathf.Floor((rect.height + PlacementTolerance) / cellSize.y) - 0.5f) * cellSize.y);
         }
-        private void Start() { RefreshLayout(); }
-        /// <summary>Applies Inspector dimensions to floor and six wall segments.</summary>
+        private void Awake() { RefreshLayout(); }
+        /// <summary>Applies configured dimensions to the floor, walls and door blockers.</summary>
         public void RefreshLayout()
         {
+            // Keep the one-cell station clear of the player at the center and leave room to walk.
+            float wallAllowance = 2f * _wallThickness;
+            _size = new Vector2(Mathf.Max(_tuning.Length, 3f + wallAllowance),
+                Mathf.Max(_tuning.Width, 2f + wallAllowance));
+            float minimumDoorOpening = 1f + 2f * Physics2D.defaultContactOffset;
+            float doorWidth = Mathf.Clamp(_tuning.DoorWidth, minimumDoorOpening, _size.x - wallAllowance);
             _floor.localScale = new Vector3(_size.x, _size.y, 1f);
             float sideX = (_size.x - _wallThickness) * 0.5f;
             SetPart(_walls[0], new Vector2(-sideX, 0f), new Vector2(_wallThickness, _size.y));
             SetPart(_walls[1], new Vector2(sideX, 0f), new Vector2(_wallThickness, _size.y));
-            float width = (_size.x - _doorWidth) * 0.5f;
-            float x = (_size.x + _doorWidth) * 0.25f;
+            float width = (_size.x - doorWidth) * 0.5f;
+            float x = (_size.x + doorWidth) * 0.25f;
             float y = (_size.y - _wallThickness) * 0.5f;
             SetPart(_walls[2], new Vector2(-x, y), new Vector2(width, _wallThickness));
             SetPart(_walls[3], new Vector2(x, y), new Vector2(width, _wallThickness));
@@ -69,7 +77,7 @@ namespace MMF.Truck
             SetPart(_walls[5], new Vector2(x, -y), new Vector2(width, _wallThickness));
             for (int i = 0; i < _doorBlockers.Length; i++)
                 if (_doorBlockers[i] != null)
-                    SetPart(_doorBlockers[i], new Vector2(0f, i == 0 ? y : -y), new Vector2(_doorWidth, _wallThickness));
+                    SetPart(_doorBlockers[i], new Vector2(0f, i == 0 ? y : -y), new Vector2(doorWidth, _wallThickness));
         }
         private static void SetPart(Transform part, Vector2 position, Vector2 size)
         {

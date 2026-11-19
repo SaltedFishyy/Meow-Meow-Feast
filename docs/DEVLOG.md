@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-11-18 · T014c1 · 新版煎锅 3a：鼠标从背包拖进锅、从锅拖回背包
+
+**做了什么**（Codex 编写，Claude 审查 + 两处小改，一次通过）
+- 新脚本 `UI/PanDragInput`（挂在玩家上）：小锅显示时，在背包栏某格按住左键 → 半透明物品图标跟着鼠标 → 在小锅上松开 = `TryPlace`，成功才从那一格扣 1 个（选中格不变），失败显示"x"。在小锅里按住食物拖到背包栏松开 = 先查背包放得下（`BackpackModel.CanAdd`）再 `TryTakeBack`；放不下显示"x"，锅里照样煎。在别处松开什么都不发生。倒地 / 输入关掉 / 小锅隐藏时取消拖动。
+- 左键优先级：`PlayerInputReader` 的左键处理开头先问 `PanDragInput.TryHandlePress`，鼠标在小锅或背包格上（小锅显示时）就不举锅台、不攻击。
+- `BackpackModel`：`TryAdd` 抽出"找能放的格子"，新增 `CanAdd`、`TryTakeOne(slot)`（`TryDrop` 改用它），加了测试。`BackpackBar`：`SlotAtScreenPoint`。
+- `PanCooking` 新增 `Flipped` 事件；`PanCookingView` 只在翻面事件时播翻面动画，直接拿回时食物直接消失（T014b 的遗留问题）。
+- 生成器：背包栏 Canvas 上建拖动图标、挂 `PanDragInput`、填引用。
+
+**Claude 的小改（极小改动，未再派 Codex）**
+- `BackpackBar.cs`：Codex 写进了 1 个 CRLF，改回 LF（BOM 和原来一样保留）。
+- `PanCookingView.cs`：GDD 写"举着锅台时……画面跟着锅台"，但举起后锅台在头顶 1.65 格、超出互动距离 1，小锅被隐藏了（T014b 的问题）。改成"在互动距离内，或锅台正被这个玩家举着"就显示。
+- `PanDragInput.cs`：退出 Play 时 `OnDisable` 访问已销毁的图标报 `MissingReferenceException`，加了空判断。
+
+**审查 / 实测**
+- 编译 0 错误 0 警告；场景生成 3 次，引用 197 个、空 0 个；107 个测试全部通过。
+- Play（脚本模拟鼠标）：拖蘑菇进锅 → 开始煎、背包少 1 个、选中格不变；锅里有东西再拖 → "x"、背包不变；拖回 → 回背包、没有翻面动画；背包满拖回 → "x"、锅里照样在煎；在小锅 / 背包格上按左键不举锅台，在别处按照样举起 / 放下；举着锅台时小锅跟着显示、也能拖进去；旧版 E 键照常能煎。进出 Play 没有新报错。
+- 旧版 `FryingPanel.Close` 在"旧版煎到一半时退出 Play"会报 `MissingReferenceException`，是原有问题，T014d 删旧版时一起消失。
+
+**怎么试玩**
+1. Play，捡一个蘑菇，进车走到左上角锅台旁边，上方出现小锅。
+2. 从屏幕下面的背包栏按住蘑菇那一格，拖到小锅上松开：蘑菇进锅，开始转圈。
+3. 从小锅里把蘑菇拖回背包栏：回到背包。（翻面要等 T014c2。）
+
+---
+
 ## 2026-11-18 · T014b · 新版煎锅 2：锅台上方的小锅画面 + 4 个提示
 
 **做了什么**（Codex 编写，Claude 审查，第 2 轮通过）

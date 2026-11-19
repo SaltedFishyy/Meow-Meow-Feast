@@ -26,6 +26,9 @@ namespace MMF.Cooking
         /// <summary>Raised after a pan state change updates the station marker.</summary>
         public event Action StateChanged;
 
+        /// <summary>Raised after a successful flip with the original item and whether it was the final flip.</summary>
+        public event Action<ItemDefinition, bool> Flipped;
+
         private void Awake()
         {
             _model = new PanCookingModel(_tuning, _station.BurntItem);
@@ -49,7 +52,11 @@ namespace MMF.Cooking
         public bool TryFlip(out ItemDefinition cooked)
         {
             cooked = null;
-            return !_legacyInteractor.Cooking && _model.TryFlip(out cooked);
+            ItemDefinition item = _model.Item;
+            bool finalFlip = _model.State == PanCookingModel.CookingState.ReadySecond;
+            if (_legacyInteractor.Cooking || !_model.TryFlip(out cooked)) return false;
+            Flipped?.Invoke(item, finalFlip);
+            return true;
         }
 
         /// <summary>Collects one item from the pan, preserving any remaining legacy batch.</summary>

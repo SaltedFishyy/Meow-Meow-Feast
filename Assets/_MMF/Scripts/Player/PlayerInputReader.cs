@@ -1,4 +1,5 @@
 using MMF.Combat;
+using MMF.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,6 +11,8 @@ namespace MMF.Player
     public sealed class PlayerInputReader : MonoBehaviour
     {
         [SerializeField] private InputActionAsset _controls = null;
+
+        [SerializeField] private PanDragInput _panDrag = null;
 
         private InputActionAsset _controlsInstance;
         private InputAction _moveAction;
@@ -57,6 +60,7 @@ namespace MMF.Player
             };
             _gameplay.FindAction("Lift", true).performed += context =>
             {
+                if (context.control.device is Mouse mouse && _panDrag != null && _panDrag.TryHandlePress(mouse)) return;
                 if (_throw != null && _throw.Charging) { _throw.Cancel(); return; }
                 if (_interactor == null || _interactor.Lift()) return;
                 if (_attack != null && TryGetMouseWorldPosition(out Vector2 worldPosition))

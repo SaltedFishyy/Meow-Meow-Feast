@@ -35,7 +35,6 @@ namespace MMF.UI
         private RectTransform _canvasRect;
         private Camera _camera;
         private CookingState _state;
-        private ItemDefinition _previousItem;
         private ItemDefinition _flippingItem;
         private bool _finalFlip;
         private float _flipStarted;
@@ -50,31 +49,28 @@ namespace MMF.UI
         private void Start()
         {
             _state = _pan.State;
-            _previousItem = _pan.Item;
             _pan.StateChanged += OnStateChanged;
+            _pan.Flipped += OnFlipped;
         }
 
-        private void OnDestroy() => _pan.StateChanged -= OnStateChanged;
+        private void OnDestroy()
+        {
+            _pan.StateChanged -= OnStateChanged;
+            _pan.Flipped -= OnFlipped;
+        }
 
         private void OnStateChanged()
         {
-            CookingState next = _pan.State;
-            bool firstFlip = _state == CookingState.ReadyFirst && next == CookingState.CookingSecond;
-            bool finalFlip = _state == CookingState.ReadySecond && next == CookingState.Empty;
-            if (firstFlip || finalFlip)
-            {
-                _flippingItem = _previousItem;
-                _finalFlip = finalFlip;
-                _flipStarted = Time.time;
-            }
-            else if (next != CookingState.ReadySecond &&
-                     !(next == CookingState.Holding && _finalFlip && _flippingItem != null))
-            {
+            _state = _pan.State;
+            if (_state != CookingState.ReadySecond && !(_state == CookingState.Holding && _finalFlip))
                 _flippingItem = null;
-            }
+        }
 
-            _state = next;
-            _previousItem = _pan.Item;
+        private void OnFlipped(ItemDefinition item, bool finalFlip)
+        {
+            _flippingItem = item;
+            _finalFlip = finalFlip;
+            _flipStarted = Time.time;
         }
 
         private void Update()
@@ -85,7 +81,8 @@ namespace MMF.UI
             if (flipPhase >= 1f)
                 _flippingItem = null;
 
-            bool visible = _station.InRange(_player.position);
+            // Carried stations sit above the player, outside the interaction distance.
+            bool visible = _station.InRange(_player.position) || _station.transform.IsChildOf(_player);
             if (_canvas.gameObject.activeSelf != visible)
                 _canvas.gameObject.SetActive(visible);
             if (!visible)

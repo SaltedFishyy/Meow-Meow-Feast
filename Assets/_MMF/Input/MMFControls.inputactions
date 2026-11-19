@@ -5,6 +5,7 @@
                      "name":  "Gameplay",
                      "id":  "09b533cc-186e-4417-8113-2652f79b1504",
                      "actions":  [
+                                     { "name": "PlaceInPan", "type": "Button", "id": "864b8696-ef0d-4a4e-805f-a36b4709081b", "expectedControlType": "Button" },
                                      { "name": "Throw", "type": "Button", "id": "a7c9928c-d897-43cf-b1ad-5fe10031ef18", "expectedControlType": "Button" },
                                      {
                                          "name":  "Move",
@@ -71,6 +72,7 @@
                                      }
                                  ],
                      "bindings":  [
+                                      { "id": "e48f0422-7182-42c6-ad08-2fd26ae3fdf5", "path": "<Keyboard>/e", "action": "PlaceInPan" },
                                       { "id": "3473dd12-bd6b-4ddb-b443-141b69e02f27", "path": "<Mouse>/rightButton", "action": "Throw" },
                                       {
                                           "name":  "WASD",

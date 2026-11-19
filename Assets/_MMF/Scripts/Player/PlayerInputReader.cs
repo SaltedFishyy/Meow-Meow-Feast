@@ -49,6 +49,7 @@ namespace MMF.Player
                 _gameplay.FindAction("SelectSlot" + (i + 1), true).performed += context => _backpack?.SelectSlot(slot);
             }
             _gameplay.FindAction("ScrollSlot", true).performed += context => _backpack?.ScrollSlot(context.ReadValue<float>());
+            _gameplay.FindAction("PlaceInPan", true).performed += context => _panDrag?.TryPlaceSelected();
             _gameplay.FindAction("Drop", true).performed += context => { if (_interactor == null || _interactor.CanDrop) _backpack?.Drop(); };
             _gameplay.FindAction("Throw", true).performed += context => _throw?.TryStartCharge();
             _gameplay.FindAction("Throw", true).canceled += context =>

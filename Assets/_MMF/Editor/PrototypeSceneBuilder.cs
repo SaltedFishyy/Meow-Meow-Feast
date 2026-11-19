@@ -50,7 +50,7 @@ namespace MMF.Editor
                 Debug.LogError("Cannot build prototype: MMFControls/Gameplay/Move is missing.");
                 return;
             }
-            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "Lift", "Throw", "Restart" };
+            string[] requiredActions = { "SelectSlot1", "SelectSlot2", "SelectSlot3", "SelectSlot4", "SelectSlot5", "ScrollSlot", "Drop", "PlaceInPan", "Lift", "Throw", "Restart" };
             foreach (string action in requiredActions)
                 if (controls.FindAction("Gameplay/" + action) == null)
                 {

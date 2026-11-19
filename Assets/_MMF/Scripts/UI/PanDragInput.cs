@@ -88,6 +88,19 @@ namespace MMF.UI
             return true;
         }
 
+        /// <summary>Attempts to place one item from the selected slot while a pan view is visible.</summary>
+        public void TryPlaceSelected()
+        {
+            if (!CanDrag || VisibleView == null) return;
+
+            int slot = _backpack.Model.SelectedSlot;
+            ItemDefinition item = _backpack.ItemAt(slot);
+            if (item != null && _pan.TryPlace(item))
+                _backpack.Model.TryTakeOne(slot, out _);
+            else
+                _backpack.ShowFailure();
+        }
+
         private void LateUpdate()
         {
             if (_mouse == null) return;

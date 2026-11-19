@@ -257,7 +257,7 @@ namespace MMF.Editor
             {
                 definition = ScriptableObject.CreateInstance<MonsterDefinition>();
                 SerializedObject data = new SerializedObject(definition);
-                data.FindProperty("_color").colorValue = new Color(1f, 0.6f, 0.15f);
+                data.FindProperty("_color").colorValue = new Color(1f, 0.45f, 0.75f);
                 data.ApplyModifiedPropertiesWithoutUndo();
                 AssetDatabase.CreateAsset(definition, path);
             }

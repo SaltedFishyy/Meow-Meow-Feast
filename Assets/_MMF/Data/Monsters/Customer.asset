@@ -18,7 +18,7 @@ MonoBehaviour:
   _respawnDelay: 20
   _flashDuration: 0.1
   _knockbackDistance: 0.3
-  _color: {r: 1, g: 0.6, b: 0.15, a: 1}
+  _color: {r: 1, g: 0.45, b: 0.75, a: 1}
   _chaseStartDistance: 8
   _chaseStopDistance: 10
   _leftEndProbability: 0.7

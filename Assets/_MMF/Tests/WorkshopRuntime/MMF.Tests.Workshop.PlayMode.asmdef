@@ -1,7 +1,7 @@
 {
   "name": "MMF.Tests.Workshop.PlayMode",
   "references": [
-    "MMF.Runtime",
+    "MMF.Runtime", "Unity.InputSystem",
     "AbilityStudio.Model",
     "AbilityStudio.Runtime"
   ],

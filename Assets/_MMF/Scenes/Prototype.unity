@@ -5833,8 +5833,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: MMF.Runtime::MMF.Player.PlayerBackpack
   _tuning: {fileID: 11400000, guid: 9eb834686f204fa45959094d62e3d06f, type: 2}
-  _startingItems:
-  - {fileID: 11400000, guid: b218dea8ccb803a47834a35d97eff86a, type: 2}
+  _startingItems: []
   _worldItemSize: 0.4
   _itemSprite: {fileID: 21300000, guid: 6b6f74c1185da3247b2dda10f83ad4ae, type: 3}
   _heldIcon: {fileID: 1459878550}

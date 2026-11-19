@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: MMFWorkshopLoadout
   m_EditorClassIdentifier: MMF.Runtime::MMF.Data.WorkshopLoadout
   _playerOne: {fileID: 11400000, guid: b29549131ba9f004f826319582ea2705, type: 2}
+  _showAttackPreview: 0

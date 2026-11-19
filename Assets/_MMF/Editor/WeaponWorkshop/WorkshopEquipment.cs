@@ -8,6 +8,17 @@ namespace MMF.Editor.WeaponWorkshop
     public static class WorkshopEquipment
     {
         public const string AssetPath = "Assets/_MMF/Data/Resources/MMFWorkshopLoadout.asset";
+        public static void SetPreview(bool enabled)
+        {
+            var loadout = Load();
+            if (loadout == null)
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/_MMF/Data/Resources")) AssetDatabase.CreateFolder("Assets/_MMF/Data", "Resources");
+                loadout = ScriptableObject.CreateInstance<WorkshopLoadout>(); AssetDatabase.CreateAsset(loadout, AssetPath);
+            }
+            Undo.RecordObject(loadout, "切换攻击范围预览");
+            loadout.ShowAttackPreview = enabled; EditorUtility.SetDirty(loadout); AssetDatabase.SaveAssetIfDirty(loadout);
+        }
         public static WorkshopLoadout Load() => AssetDatabase.LoadAssetAtPath<WorkshopLoadout>(AssetPath);
         public static bool IsEquipped(SkillDefinition weapon) => weapon != null && Load() != null && Load().PlayerOne == weapon;
         /// <summary>Persists equipment immediately and supports editor Undo.</summary>

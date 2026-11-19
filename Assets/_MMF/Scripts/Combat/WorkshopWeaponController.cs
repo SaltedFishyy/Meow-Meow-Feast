@@ -16,6 +16,7 @@ namespace MMF.Combat
         private SkillExecutor _executor;
         private SkillReleaseSession _release;
         private PlayerAttack _attack;
+        private PlayerBackpack _backpack;
         private PlayerHealth _health;
         private PlayerInputReader _input;
         private PlayerInteractor _interactor;
@@ -23,15 +24,10 @@ namespace MMF.Combat
         private Quaternion _rotation = Quaternion.identity;
         private float _pendingHealing;
         private SkillInputKey? _heldKey;
-        public bool OwnsRightMouse => HasWeapon && (_weapon.DualAttack || _weapon.NormalKey == SkillInputKey.MouseRight);
-        public SkillInputKey PrimaryKey => _weapon == null ? SkillInputKey.MouseLeft : _weapon.NormalKey;
-        public SkillInputKey? SecondaryKey => _weapon != null && _weapon.DualAttack ? _weapon.SpecialKey : (SkillInputKey?)null;
         public bool PressInput(SkillInputKey key, Vector2 aim)
         {
-            if (!HasWeapon) return false;
-            var slot = _weapon.SlotForKey(key);
-            if (!slot.HasValue) return false;
-            bool result = PressSlot(aim, slot.Value);
+            if (key != SkillInputKey.MouseLeft || !HasWeapon) return false;
+            bool result = Press(aim);
             if (_release.IsCharging && _heldKey == null) _heldKey = key;
             return result;
         }
@@ -58,12 +54,14 @@ namespace MMF.Combat
         }
         private void Awake()
         {
+            _backpack = GetComponent<PlayerBackpack>();
             _attack = GetComponent<PlayerAttack>(); _health = GetComponent<PlayerHealth>();
             _input = GetComponent<PlayerInputReader>(); _interactor = GetComponent<PlayerInteractor>();
             _collider = GetComponent<Collider2D>();
             _executor = new SkillExecutor(this, this); _release = new SkillReleaseSession(_executor);
             var visuals = gameObject.AddComponent<WorkshopWeaponView>(); visuals.Bind(_executor);
             var feedback = gameObject.AddComponent<PlaygroundHitFeedback>(); feedback.Bind(_executor, Camera.main);
+            gameObject.AddComponent<WorkshopAttackPreview>().Bind(this);
             RefreshWeapon();
         }
         private void RefreshWeapon()
@@ -73,9 +71,18 @@ namespace MMF.Combat
                 _loadout = Resources.Load<WorkshopLoadout>(WorkshopLoadout.ResourceName);
                 _nextLoad = UnityEngine.Time.realtimeSinceStartupAsDouble + .3;
             }
-            var selected = _loadout == null ? null : _loadout.PlayerOne;
+            var item = _backpack == null || _backpack.Model == null ? null : _backpack.ItemAt(_backpack.Model.SelectedSlot);
+            var selected = item == null || _loadout == null || item.WorkshopWeapon != _loadout.PlayerOne ? null : item.WorkshopWeapon;
             if (selected == _weapon) return;
             Cancel(); _executor?.Reset(); _weapon = selected; _pendingHealing = 0;
+        }
+        public bool TryGetPreview(out SkillDefinition skill, out Vector3 aim, out float charge)
+        {
+            skill = null; aim = default; charge = 0;
+            if (!HasWeapon || !IsAlive || !_loadout.ShowAttackPreview || _input == null || !_input.isActiveAndEnabled ||
+                (_interactor != null && !_interactor.CanDrop) || !_input.TryGetMouseWorldPosition(out var point)) return false;
+            Aim(point); skill = _weapon; aim = point; charge = _release.IsCharging ? _release.ChargeRatio : 1;
+            return true;
         }
         private void Aim(Vector2 aim)
         {

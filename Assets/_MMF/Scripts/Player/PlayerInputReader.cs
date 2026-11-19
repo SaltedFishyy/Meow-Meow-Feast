@@ -1,6 +1,5 @@
 using MMF.Combat;
 using AbilityStudio.Model;
-using AbilityStudio.Playground;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -51,23 +50,11 @@ namespace MMF.Player
             _gameplay.FindAction("Drop", true).performed += context => { if (_interactor == null || _interactor.CanDrop) _backpack?.Drop(); };
             _gameplay.FindAction("Interact", true).performed += context => _interactor?.Interact();
             _gameplay.FindAction("Cancel", true).performed += context => _interactor?.Cancel();
-            _gameplay.FindAction("Throw", true).performed += context =>
-            {
-                if (_attack != null && _attack.WorkshopOwnsRightMouse)
-                {
-                    if (TryGetMouseWorldPosition(out Vector2 aim)) _attack.PressWorkshopInput(SkillInputKey.MouseRight, aim);
-                }
-                else _throw?.TryStartCharge();
-            };
+            _gameplay.FindAction("Throw", true).performed += context => _throw?.TryStartCharge();
             _gameplay.FindAction("Throw", true).canceled += context =>
             {
-                // Disabling the map also sends canceled for a held button.
-                if (!isActiveAndEnabled) { _attack?.CancelWorkshop(); return; }
-                if (_attack != null && _attack.WorkshopOwnsRightMouse)
-                {
-                    if (TryGetMouseWorldPosition(out Vector2 aim)) _attack.ReleaseWorkshopInput(SkillInputKey.MouseRight, aim);
-                }
-                else _throw?.Release();
+                if (isActiveAndEnabled) _throw?.Release();
+                else _throw?.Cancel();
             };
             _gameplay.FindAction("Lift", true).performed += context =>
             {
@@ -95,25 +82,11 @@ namespace MMF.Player
 
         private void Update()
         {
-            if (_attack != null && _attack.HasWorkshopWeapon && TryGetMouseWorldPosition(out Vector2 aim))
-            {
-                PollWorkshopKey(_attack.WorkshopPrimaryKey, aim);
-                if (_attack.WorkshopSecondaryKey is SkillInputKey secondary) PollWorkshopKey(secondary, aim);
-                if (_attack.WorkshopOwnsRightMouse && _throw != null && _throw.Charging) _throw.Cancel();
-            }
             if (_throw != null && _throw.Charging && TryGetMouseWorldPosition(out Vector2 worldPosition))
                 _throw.SetAim(worldPosition);
         }
 
-        private void PollWorkshopKey(SkillInputKey key, Vector2 aim)
-        {
-            if (key == SkillInputKey.MouseLeft || key == SkillInputKey.MouseRight) return;
-            var control = SkillInput.Control(key);
-            if (control == null) return;
-            if (control.wasPressedThisFrame) _attack.PressWorkshopInput(key, aim);
-            if (control.wasReleasedThisFrame) _attack.ReleaseWorkshopInput(key, aim);
-        }
-        private bool TryGetMouseWorldPosition(out Vector2 worldPosition)
+        public bool TryGetMouseWorldPosition(out Vector2 worldPosition)
         {
             worldPosition = default;
             if (Mouse.current == null || _camera == null) return false;

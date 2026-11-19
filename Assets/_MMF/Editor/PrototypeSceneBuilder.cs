@@ -516,17 +516,6 @@ namespace MMF.Editor
             return tuning;
         }
 
-        private static WeaponDefinition LoadFryingPanWeapon()
-        {
-            EnsureFolder(Root + "/Data/Weapons");
-            string path = Root + "/Data/Weapons/FryingPan.asset";
-            WeaponDefinition weapon = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(path);
-            if (weapon != null) return weapon;
-            weapon = ScriptableObject.CreateInstance<WeaponDefinition>();
-            AssetDatabase.CreateAsset(weapon, path);
-            return weapon;
-        }
-
         private static ItemDefinition LoadItem(string id, string displayName, Color color)
         {
             string path = Root + "/Data/Items/" + id + ".asset";
@@ -545,20 +534,6 @@ namespace MMF.Editor
         private static RectTransform CreateBackpackContent(Sprite sprite, PlayerBackpack backpack)
         {
             EnsureFolder(Root + "/Data/Items");
-            ItemDefinition fryingPan = LoadItem("FryingPan", "平底锅", new Color(0.55f, 0.55f, 0.55f));
-            SerializedObject panData = new SerializedObject(fryingPan);
-            panData.FindProperty("_id").stringValue = "FryingPan";
-            panData.FindProperty("_displayName").stringValue = "平底锅";
-            panData.FindProperty("_color").colorValue = new Color(0.55f, 0.55f, 0.55f);
-            panData.FindProperty("_fryingResult").objectReferenceValue = null;
-            panData.FindProperty("_weapon").objectReferenceValue = LoadFryingPanWeapon();
-            panData.FindProperty("_neverExpiresOnGround").boolValue = true;
-            panData.ApplyModifiedPropertiesWithoutUndo();
-            SerializedObject backpackData = new SerializedObject(backpack);
-            SerializedProperty startingItems = backpackData.FindProperty("_startingItems");
-            startingItems.arraySize = 1;
-            startingItems.GetArrayElementAtIndex(0).objectReferenceValue = fryingPan;
-            backpackData.ApplyModifiedPropertiesWithoutUndo();
             ItemDefinition mushroom = LoadItem("Mushroom", "蘑菇", new Color(0.85f, 0.75f, 0.55f));
             Vector2[] positions =
             {

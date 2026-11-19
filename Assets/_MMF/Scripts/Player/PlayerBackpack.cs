@@ -17,6 +17,7 @@ namespace MMF.Player
         [SerializeField, Min(0.01f)] private float _iconSize = 0.25f;
         [SerializeField] private Sprite _failureSprite = null;
         private float _failureUntil;
+        private ItemDefinition _initialWorkshopItem;
         private readonly Dictionary<string, ItemDefinition> _definitions = new Dictionary<string, ItemDefinition>();
         public BackpackModel Model { get; private set; }
         public event Action ContentsChanged;
@@ -25,8 +26,18 @@ namespace MMF.Player
         {
             Model = new BackpackModel(_tuning.SlotCount, _tuning.StackLimit);
             Model.ContentsChanged += OnContentsChanged; Model.SelectionChanged += OnSelectionChanged;
+            var loadout = Resources.Load<WorkshopLoadout>(WorkshopLoadout.ResourceName);
+            if (loadout != null && loadout.PlayerOne != null)
+            {
+                _initialWorkshopItem = ItemDefinition.CreateWorkshopWeapon(loadout.PlayerOne);
+                TryAdd(_initialWorkshopItem);
+            }
             foreach (ItemDefinition item in _startingItems) TryAdd(item);
             RefreshIcon();
+        }
+        private void OnDestroy()
+        {
+            if (_initialWorkshopItem != null) Destroy(_initialWorkshopItem);
         }
         public ItemDefinition ItemAt(int slot)
         {

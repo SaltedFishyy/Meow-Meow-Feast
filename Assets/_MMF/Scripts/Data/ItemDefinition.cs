@@ -1,4 +1,5 @@
 using UnityEngine;
+using AbilityStudio.Model;
 namespace MMF.Data
 {
     /// <summary>Shared item identity and placeholder appearance.</summary>
@@ -11,6 +12,18 @@ namespace MMF.Data
         [SerializeField] private ItemDefinition _fryingResult = null;
         [SerializeField] private bool _neverExpiresOnGround = false;
         [SerializeField] private WeaponDefinition _weapon = null;
+        private SkillDefinition _workshopWeapon;
+        public SkillDefinition WorkshopWeapon => _workshopWeapon;
+        /// <summary>Inventory representation of the workshop weapon selected for this play session.</summary>
+        public static ItemDefinition CreateWorkshopWeapon(SkillDefinition skill)
+        {
+            var item = CreateInstance<ItemDefinition>();
+            item.name = skill.DisplayName; item.hideFlags = HideFlags.DontSave;
+            item._id = "WorkshopWeapon:" + skill.Id;
+            item._displayName = skill.DisplayName; item._color = Color.white;
+            item._neverExpiresOnGround = true; item._workshopWeapon = skill;
+            return item;
+        }
         public WeaponDefinition Weapon => _weapon;
         public bool NeverExpiresOnGround => _neverExpiresOnGround;
         public ItemDefinition FryingResult => _fryingResult;

@@ -19,6 +19,7 @@ namespace MMF.Editor.WeaponWorkshop
         private ListView _weaponList;
         private Label _emptyMessage;
         private Toolbar _toolbar;
+        private ToolbarToggle _attackPreview;
         private ScrollView _inspector;
         private SkillDefinition _selectedWeapon;
         private double _nextAutoSaveTime;
@@ -72,6 +73,10 @@ namespace MMF.Editor.WeaponWorkshop
         {
             rootVisualElement.Clear();
             _toolbar = new Toolbar();
+            _attackPreview = new ToolbarToggle { text = "主场景攻击预览", name = "main-attack-preview" };
+            _attackPreview.SetValueWithoutNotify(WorkshopEquipment.Load() == null || WorkshopEquipment.Load().ShowAttackPreview);
+            _attackPreview.RegisterValueChangedCallback(evt => WorkshopEquipment.SetPreview(evt.newValue));
+            _toolbar.Add(_attackPreview);
             _toolbar.Add(new ToolbarButton(PreviewWeapon) { text = "试玩预览" });
             _toolbar.Add(new ToolbarButton(PingWeapon) { text = "在 Project 里选中" });
             var autoSaveLabel = new Label("改了自动保存") { pickingMode = PickingMode.Ignore };
@@ -191,6 +196,7 @@ namespace MMF.Editor.WeaponWorkshop
         private void RefreshEquipment()
         {
             var loadout = WorkshopEquipment.Load();
+            _attackPreview?.SetValueWithoutNotify(loadout == null || loadout.ShowAttackPreview);
             if (loadout != null && EditorUtility.IsDirty(loadout)) AssetDatabase.SaveAssetIfDirty(loadout);
             var current = loadout == null ? null : loadout.PlayerOne;
             if (_markedWeapon != current) { _markedWeapon = current; _weaponList?.RefreshItems(); }

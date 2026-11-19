@@ -15,9 +15,6 @@ namespace MMF.Combat
         private WorkshopWeaponController _workshop;
         internal TruckArea Truck => _truck;
         public bool HasWorkshopWeapon => _workshop != null && _workshop.HasWeapon;
-        public bool WorkshopOwnsRightMouse => _workshop != null && _workshop.OwnsRightMouse;
-        public AbilityStudio.Model.SkillInputKey WorkshopPrimaryKey => _workshop.PrimaryKey;
-        public AbilityStudio.Model.SkillInputKey? WorkshopSecondaryKey => _workshop.SecondaryKey;
         public bool PressWorkshopInput(AbilityStudio.Model.SkillInputKey key, Vector2 aim) => _workshop != null && _workshop.PressInput(key, aim);
         public void ReleaseWorkshopInput(AbilityStudio.Model.SkillInputKey key, Vector2 aim) => _workshop?.ReleaseInput(key, aim);
         private float _nextAttackTime;

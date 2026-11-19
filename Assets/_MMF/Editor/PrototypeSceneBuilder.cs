@@ -126,7 +126,7 @@ namespace MMF.Editor
             RectTransform row = CreateBackpackContent(sprite, backpack);
             CreatePlayerHealthBar(row.parent, backpack.GetComponent<PlayerHealth>());
             CreateTruckHealthBar(row.parent, truck.GetComponent<TruckHealth>());
-            CreateFrying(sprite, backpack, truck, row);
+            CreateFrying(sprite, backpack, truck, row, camera);
             CreateGameOverScreen(row.parent, truck.GetComponent<TruckHealth>(),
                 backpack.GetComponent<PlayerInputReader>(), controls);
             SetReference(arena, "_follow", follow);
@@ -653,7 +653,7 @@ namespace MMF.Editor
             SetReference(screen, "_overlay", overlay.gameObject);
         }
 
-        private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow)
+        private static void CreateFrying(Sprite sprite, PlayerBackpack backpack, TruckArea truck, RectTransform backpackRow, Camera camera)
         {
             Transform canvas = backpackRow.parent;
             ItemDefinition meat = AssetDatabase.LoadAssetAtPath<ItemDefinition>(Root + "/Data/Items/MonsterMeat.asset");
@@ -692,6 +692,7 @@ namespace MMF.Editor
             SetReference(panCooking, "_station", station);
             SetReference(panCooking, "_tuning", LoadCookingTuning());
             SetReference(panCooking, "_legacyInteractor", interactor);
+            CreatePanCookingView(panCooking, station, backpack.transform, camera, pan.sprite, backpackRow);
             SetReference(interactor, "_station", station); SetReference(interactor, "_panel", panel); SetReference(interactor, "_truck", truck);
             var preview = new GameObject("Placement Preview").AddComponent<UnityEngine.Rendering.SortingGroup>();
             preview.sortingOrder = 1;
@@ -706,6 +707,67 @@ namespace MMF.Editor
             SetReference(interactor, "_placementFailure", failure);
             view.gameObject.SetActive(false); AssetDatabase.SaveAssets();
         }
+        private static void CreatePanCookingView(PanCooking panCooking, FryingStation station,
+            Transform player, Camera camera, Sprite panSprite, RectTransform backpackRow)
+        {
+            RectTransform rect = UiRect("Pan Cooking Canvas", station.transform, new Vector2(300f, 300f), Vector2.zero);
+            Canvas canvas = rect.gameObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = camera;
+            canvas.sortingOrder = 50;
+            CanvasScaler scaler = rect.gameObject.AddComponent<CanvasScaler>();
+            scaler.dynamicPixelsPerUnit = 4f;
+
+            Color panColor = new Color(0.3f, 0.32f, 0.35f);
+            Image pan = rect.gameObject.AddComponent<Image>();
+            pan.sprite = panSprite;
+            pan.color = panColor;
+
+            Sprite disk = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            RectTransform ring = UiRect("Cooking Progress", rect, new Vector2(158f, 158f), Vector2.zero);
+            Image progress = ring.gameObject.AddComponent<Image>();
+            progress.sprite = disk;
+            progress.color = new Color(0.98f, 0.79f, 0.34f);
+            progress.type = Image.Type.Filled;
+            progress.fillMethod = Image.FillMethod.Radial360;
+            progress.fillOrigin = (int)Image.Origin360.Top;
+            Image center = UiRect("Ring Center", ring, new Vector2(136f, 136f), Vector2.zero).gameObject.AddComponent<Image>();
+            center.sprite = disk;
+            center.color = panColor;
+            progress.raycastTarget = center.raycastTarget = false;
+
+            Image food = UiRect("Food", rect, new Vector2(88f, 88f), Vector2.zero).gameObject.AddComponent<Image>();
+            Text flipHint = UiText("Flip Hint", rect, new Vector2(90f, 52f), new Vector2(91f, 48f), 32);
+            flipHint.text = "翻！";
+
+            Image[] smoke = new Image[3];
+            for (int i = 0; i < smoke.Length; i++)
+            {
+                RectTransform smokeRect = UiRect("Smoke " + (i + 1), rect, new Vector2(16f, 16f), Vector2.zero);
+                smoke[i] = smokeRect.gameObject.AddComponent<Image>();
+                smoke[i].raycastTarget = false;
+            }
+
+            PanCookingView view = station.gameObject.AddComponent<PanCookingView>();
+            SetReference(view, "_pan", panCooking);
+            SetReference(view, "_station", station);
+            SetReference(view, "_player", player);
+            SetReference(view, "_tuning", LoadCookingTuning());
+            SetReference(view, "_canvas", canvas);
+            SetReference(view, "_backpackRow", backpackRow);
+            SetReference(view, "_food", food);
+            SetReference(view, "_progressRing", ring);
+            SetReference(view, "_progress", progress);
+            SetReference(view, "_flipHint", flipHint);
+            SerializedObject viewData = new SerializedObject(view);
+            SerializedProperty particles = viewData.FindProperty("_smoke");
+            particles.arraySize = smoke.Length;
+            for (int i = 0; i < smoke.Length; i++)
+                particles.GetArrayElementAtIndex(i).objectReferenceValue = smoke[i];
+            viewData.ApplyModifiedPropertiesWithoutUndo();
+            canvas.gameObject.SetActive(false);
+        }
+
         private static RectTransform UiRect(string name, Transform parent, Vector2 size, Vector2 position)
         {
             RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();

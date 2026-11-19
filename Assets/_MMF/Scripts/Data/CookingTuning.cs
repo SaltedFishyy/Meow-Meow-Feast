@@ -15,6 +15,7 @@ namespace MMF.Data
 
         [SerializeField, TuningLabel("每面煎几秒"), Min(0.01f)] private float _sideSeconds = 3f;
         [SerializeField, TuningLabel("可以翻以后几秒焦"), Min(0.01f)] private float _burnSeconds = 5f;
+        [SerializeField, TuningLabel("快焦提示提前几秒"), Min(0f)] private float _burnWarningSeconds = 2f;
 
         /// <summary>InteractionDistance used by components.</summary>
         public float InteractionDistance => _interactionDistance;
@@ -30,5 +31,7 @@ namespace MMF.Data
         public float SideSeconds => _sideSeconds;
         /// <summary>Burn delay sampled when a side starts.</summary>
         public float BurnSeconds => _burnSeconds;
+        /// <summary>Time remaining before burning at which the visual warning starts.</summary>
+        public float BurnWarningSeconds => _burnWarningSeconds;
     }
 }
